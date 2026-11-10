@@ -1,0 +1,222 @@
+{
+  "kind": "live-sandbox",
+  "paypal_base": "https://api-m.sandbox.paypal.com",
+  "started_at": "2026-11-10T02:27:50.809Z",
+  "finished_at": "2026-11-10T02:28:21.942Z",
+  "git_sha": "ec9c6cbc7c07a039cc1d0154492173a2084c082c",
+  "approval_technique": "sandbox-card",
+  "tests": {
+    "total": 32,
+    "passed": 32,
+    "failed": 0,
+    "files": 5,
+    "mode": "fixtures"
+  },
+  "tab": {
+    "id": "tab_QmBD8GkG5yKP",
+    "order_id": "0RH691928W451150U",
+    "order_status": "COMPLETED",
+    "authorization_id": "6JK006711K307744G",
+    "authorization_status": "VOIDED"
+  },
+  "math": {
+    "held": "2.00",
+    "captured": "1.00",
+    "voided": "1.00",
+    "not_charged": "0.50",
+    "passed": 2,
+    "failed": 1
+  },
+  "expectation_met": true,
+  "calls": [
+    {
+      "input": "seawall",
+      "expected": "pass",
+      "verdict": "pass",
+      "score": 9.3,
+      "checks": {
+        "schema": true,
+        "spans": true,
+        "grounding": true,
+        "coverage": true,
+        "judge": true
+      },
+      "reasons": [],
+      "attempts": 2,
+      "model": "@cf/meta/llama-3.1-8b-instruct-fast",
+      "price": "0.50",
+      "charged": "0.50",
+      "title": "Harbor District Council Meeting Notes",
+      "at": "2026-11-10T02:28:00.866Z",
+      "paypal_capture": {
+        "id": "4F719161T7582324G",
+        "status": "COMPLETED",
+        "amount": {
+          "currency_code": "USD",
+          "value": "0.50"
+        },
+        "final_capture": false,
+        "invoice_id": "tab_QmBD8GkG5yKP-q_5oVoUkH1CVwl",
+        "create_time": "2026-11-10T02:28:02Z"
+      }
+    },
+    {
+      "input": "outage",
+      "expected": "pass",
+      "verdict": "pass",
+      "score": 9.7,
+      "checks": {
+        "schema": true,
+        "spans": true,
+        "grounding": true,
+        "coverage": true,
+        "judge": true
+      },
+      "reasons": [],
+      "attempts": 1,
+      "model": "@cf/meta/llama-3.1-8b-instruct-fast",
+      "price": "0.50",
+      "charged": "0.50",
+      "title": "Checkout Failure Due to Expired Certificate",
+      "at": "2026-11-10T02:28:07.282Z",
+      "paypal_capture": {
+        "id": "7X403588VG748002D",
+        "status": "COMPLETED",
+        "amount": {
+          "currency_code": "USD",
+          "value": "0.50"
+        },
+        "final_capture": false,
+        "invoice_id": "tab_QmBD8GkG5yKP-q_1SuzQmNhdAsJ",
+        "create_time": "2026-11-10T02:28:08Z"
+      }
+    },
+    {
+      "input": "gummies",
+      "expected": "fail",
+      "verdict": "fail",
+      "score": 0,
+      "checks": {
+        "schema": true,
+        "spans": true,
+        "grounding": false,
+        "coverage": true,
+        "judge": false
+      },
+      "reasons": [
+        "claim 1: says things its quote doesn't"
+      ],
+      "attempts": 2,
+      "model": "@cf/meta/llama-3.1-8b-instruct-fast",
+      "price": "0.50",
+      "charged": "0.00",
+      "title": "DreamDrop Ultra Sleep Gummies Review",
+      "at": "2026-11-10T02:28:16.899Z",
+      "paypal_capture": null
+    }
+  ],
+  "events": [
+    {
+      "at": "2026-11-10T02:27:51.553Z",
+      "step": "order.created",
+      "detail": {
+        "order_id": "0RH691928W451150U",
+        "status": "CREATED",
+        "approval": "sandbox-card"
+      }
+    },
+    {
+      "at": "2026-11-10T02:27:54.468Z",
+      "step": "order.authorized",
+      "detail": {
+        "authorization_id": "6JK006711K307744G",
+        "held": "2.00"
+      }
+    },
+    {
+      "at": "2026-11-10T02:27:55.154Z",
+      "step": "quote",
+      "detail": {
+        "input": "seawall",
+        "quote_id": "q_5oVoUkH1CVwl",
+        "price": "0.50",
+        "remaining": "2.00",
+        "http_status": 402
+      }
+    },
+    {
+      "at": "2026-11-10T02:28:03.211Z",
+      "step": "call.pass.captured",
+      "detail": {
+        "input": "seawall",
+        "expected": "pass",
+        "score": 9.3,
+        "capture_id": "4F719161T7582324G",
+        "reasons": []
+      }
+    },
+    {
+      "at": "2026-11-10T02:28:03.981Z",
+      "step": "quote",
+      "detail": {
+        "input": "outage",
+        "quote_id": "q_1SuzQmNhdAsJ",
+        "price": "0.50",
+        "remaining": "1.50",
+        "http_status": 402
+      }
+    },
+    {
+      "at": "2026-11-10T02:28:09.689Z",
+      "step": "call.pass.captured",
+      "detail": {
+        "input": "outage",
+        "expected": "pass",
+        "score": 9.7,
+        "capture_id": "7X403588VG748002D",
+        "reasons": []
+      }
+    },
+    {
+      "at": "2026-11-10T02:28:10.555Z",
+      "step": "quote",
+      "detail": {
+        "input": "gummies",
+        "quote_id": "q_9NwghLuyiT_o",
+        "price": "0.50",
+        "remaining": "1.00",
+        "http_status": 402
+      }
+    },
+    {
+      "at": "2026-11-10T02:28:16.899Z",
+      "step": "call.fail.not_charged",
+      "detail": {
+        "input": "gummies",
+        "expected": "fail",
+        "score": 0,
+        "capture_id": null,
+        "reasons": [
+          "claim 1: says things its quote doesn't"
+        ]
+      }
+    },
+    {
+      "at": "2026-11-10T02:28:17.817Z",
+      "step": "before.close",
+      "detail": {
+        "authorization_status": "PARTIALLY_CAPTURED",
+        "captured": "1.00",
+        "remaining": "1.00"
+      }
+    },
+    {
+      "at": "2026-11-10T02:28:21.930Z",
+      "step": "tab.closed",
+      "detail": {
+        "voided": "1.00",
+        "authorization_status": "VOIDED"
+      }
+    }
+  ]
+}
