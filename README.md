@@ -4,6 +4,8 @@
 
 Live: _pending deploy_ (see [the PR](https://github.com/JoeProAI/toll-bridge/pull/1) for status). PayPal **sandbox only**. No real money moves.
 
+Live sandbox proof: [proof/PROOF.md](proof/PROOF.md) has a real PayPal sandbox run (order, authorization, 2 captures, void) with the IDs PayPal returned.
+
 ## Why
 
 Agents that spend money today either get a whole card (scary) or a human approves every charge (useless). Toll Bridge sits in the middle and uses real PayPal primitives:
@@ -54,7 +56,7 @@ npm run dev
 
 The open-tab page shows the PayPal button. Log in with a sandbox buyer account to approve the hold. The client only ever talks to `api-m.sandbox.paypal.com` and refuses any other base URL.
 
-Sandbox buyer login for judges: _to be added_.
+Sandbox buyer login for judges: `sb-ak43ew42095534@personal.example.com` (password shared with judges alongside the submission; it's a PayPal sandbox test account, no real money).
 
 ### Point an agent at it
 
