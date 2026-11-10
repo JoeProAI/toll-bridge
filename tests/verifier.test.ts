@@ -85,3 +85,14 @@ describe("verifier suite", () => {
     expect(v.pass).toBe(false);
   });
 });
+
+describe("wring self-pruning", () => {
+  it("drops claims with no quotable source but never below the minimum", async () => {
+    const { dropUnquotable } = await import("@/lib/tools/wring");
+    const c = (span: boolean) => ({ text: "t", quote: "q", span: span ? { start: 0, end: 1 } : null });
+    const b = { title: "x", summary: "y", claims: [c(true), c(true), c(true), c(false)], open_questions: [] };
+    expect(dropUnquotable(b).claims).toHaveLength(3);
+    const thin = { ...b, claims: [c(true), c(true), c(false)] };
+    expect(dropUnquotable(thin).claims).toHaveLength(3);
+  });
+});

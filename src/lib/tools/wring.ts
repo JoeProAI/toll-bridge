@@ -63,5 +63,13 @@ export async function runWring(model: ChatModel, input: string, feedback?: strin
     schema: GENERATOR_JSON_SCHEMA,
     meta: { input, feedback },
   });
-  return { brief: shapeBrief(res.data, input), model: res.model, raw: res.raw };
+  return { brief: dropUnquotable(shapeBrief(res.data, input)), model: res.model, raw: res.raw };
+}
+
+// The tool drops claims whose quote it can't find in the source, as long as
+// enough are left. It never edits a quote. The verifier still re-checks
+// every span on its own.
+export function dropUnquotable(b: Brief, min = 3): Brief {
+  const kept = b.claims.filter((c) => c.span);
+  return kept.length >= min && kept.length < b.claims.length ? { ...b, claims: kept } : b;
 }

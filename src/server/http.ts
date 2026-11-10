@@ -16,8 +16,22 @@ export function bearer(req: NextRequest): string | undefined {
   return req.headers.get("x-tab-token")?.trim() || undefined;
 }
 
+// Cookies cap out near 4 KB, so long tabs are split across a few.
+const CHUNK = 3500;
+const MAX_CHUNKS = 4;
+
+function readTabCookie(req: NextRequest): string | undefined {
+  const parts: string[] = [];
+  for (let i = 0; i < MAX_CHUNKS; i++) {
+    const v = req.cookies.get(i === 0 ? TAB_COOKIE : `${TAB_COOKIE}_${i}`)?.value;
+    if (!v) break;
+    parts.push(v);
+  }
+  return parts.length ? parts.join("") : undefined;
+}
+
 export function readTab(req: NextRequest, bodyToken?: string): TabState {
-  const token = bodyToken || bearer(req) || req.cookies.get(TAB_COOKIE)?.value;
+  const token = bodyToken || bearer(req) || readTabCookie(req);
   if (!token) throw new TollError(401, "no_tab", "No open tab. Open one at /open, then send its tab_token as a Bearer token.");
   try {
     return openTabToken(tabSecret(), token);
@@ -37,7 +51,12 @@ export function readPending(req: NextRequest, bodyToken?: string): PendingTab {
 }
 
 export function withTabCookie(res: NextResponse, tabToken: string) {
-  res.cookies.set(TAB_COOKIE, tabToken, cookieOpts);
+  for (let i = 0; i < MAX_CHUNKS; i++) {
+    const name = i === 0 ? TAB_COOKIE : `${TAB_COOKIE}_${i}`;
+    const part = tabToken.slice(i * CHUNK, (i + 1) * CHUNK);
+    if (part) res.cookies.set(name, part, cookieOpts);
+    else res.cookies.delete(name);
+  }
   return res;
 }
 
