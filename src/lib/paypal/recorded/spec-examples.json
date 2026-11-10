@@ -1,0 +1,419 @@
+{
+ "POST /v2/checkout/orders 201 orders_create_simple": {
+  "id": "5O190127TN364715T",
+  "links": [
+   {
+    "href": "https://api-m.paypal.com/v2/checkout/orders/5O190127TN364715T",
+    "rel": "self",
+    "method": "GET"
+   },
+   {
+    "href": "https://www.paypal.com/checkoutnow?token=5O190127TN364715T",
+    "rel": "approve",
+    "method": "GET"
+   },
+   {
+    "href": "https://api-m.paypal.com/v2/checkout/orders/5O190127TN364715T",
+    "rel": "edit",
+    "method": "PATCH"
+   },
+   {
+    "href": "https://api-m.paypal.com/v2/checkout/orders/5O190127TN364715T/capture",
+    "rel": "capture",
+    "method": "POST"
+   }
+  ]
+ },
+ "POST /v2/checkout/orders/{id}/authorize 201 00_orders_authorize": {
+  "id": "5O190127TN364715T",
+  "payment_source": {
+   "paypal": {
+    "name": {
+     "given_name": "John",
+     "surname": "Doe"
+    },
+    "email_address": "customer@example.com",
+    "account_id": "QYR5Z8XDVJNXQ"
+   }
+  },
+  "purchase_units": [
+   {
+    "reference_id": "d9f80740-38f0-11e8-b467-0ed5f89f718b",
+    "payments": {
+     "authorizations": [
+      {
+       "id": "3C679366HH908993F",
+       "status": "CREATED",
+       "amount": {
+        "currency_code": "USD",
+        "value": "100.00"
+       },
+       "seller_protection": {
+        "status": "ELIGIBLE",
+        "dispute_categories": [
+         "ITEM_NOT_RECEIVED",
+         "UNAUTHORIZED_TRANSACTION"
+        ]
+       },
+       "expiration_time": "2021-10-08T23:37:39Z",
+       "links": [
+        {
+         "href": "https://api-m.paypal.com/v2/payments/authorizations/5O190127TN364715T",
+         "rel": "self",
+         "method": "GET"
+        },
+        {
+         "href": "https://api-m.paypal.com/v2/payments/authorizations/5O190127TN364715T/capture",
+         "rel": "capture",
+         "method": "POST"
+        },
+        {
+         "href": "https://api-m.paypal.com/v2/payments/authorizations/5O190127TN364715T/void",
+         "rel": "void",
+         "method": "POST"
+        },
+        {
+         "href": "https://api-m.paypal.com/v2/checkout/orders/5O190127TN364715T",
+         "rel": "up",
+         "method": "GET"
+        }
+       ]
+      }
+     ]
+    }
+   }
+  ],
+  "payer": {
+   "name": {
+    "given_name": "John",
+    "surname": "Doe"
+   },
+   "email_address": "customer@example.com",
+   "payer_id": "QYR5Z8XDVJNXQ"
+  },
+  "links": [
+   {
+    "href": "https://api-m.paypal.com/v2/checkout/orders/5O190127TN364715T",
+    "rel": "self",
+    "method": "GET"
+   }
+  ]
+ },
+ "GET /v2/checkout/orders/{id} 200 00_orders_get": {
+  "id": "5O190127TN364715T",
+  "payment_source": {
+   "paypal": {
+    "name": {
+     "given_name": "John",
+     "surname": "Doe"
+    },
+    "email_address": "customer@example.com",
+    "account_id": "QYR5Z8XDVJNXQ"
+   }
+  },
+  "purchase_units": [
+   {
+    "reference_id": "d9f80740-38f0-11e8-b467-0ed5f89f718b",
+    "amount": {
+     "currency_code": "USD",
+     "value": "100.00"
+    }
+   }
+  ],
+  "payer": {
+   "name": {
+    "given_name": "John",
+    "surname": "Doe"
+   },
+   "email_address": "customer@example.com",
+   "payer_id": "QYR5Z8XDVJNXQ"
+  },
+  "create_time": "2018-04-01T21:18:49Z",
+  "links": [
+   {
+    "href": "https://api-m.paypal.com/v2/checkout/orders/5O190127TN364715T",
+    "rel": "self",
+    "method": "GET"
+   },
+   {
+    "href": "https://www.paypal.com/checkoutnow?token=5O190127TN364715T",
+    "rel": "approve",
+    "method": "GET"
+   },
+   {
+    "href": "https://api-m.paypal.com/v2/checkout/orders/5O190127TN364715T",
+    "rel": "edit",
+    "method": "PATCH"
+   },
+   {
+    "href": "https://api-m.paypal.com/v2/checkout/orders/5O190127TN364715T/capture",
+    "rel": "capture",
+    "method": "POST"
+   }
+  ]
+ },
+ "POST /v2/payments/authorizations/{authorization_id}/capture 201 authorizations_capture_with_prefer_header": {
+  "id": "2GG279541U471931P",
+  "status": "COMPLETED",
+  "status_details": {},
+  "amount": {
+   "value": "10.99",
+   "currency_code": "USD"
+  },
+  "final_capture": true,
+  "seller_protection": {
+   "status": "ELIGIBLE",
+   "dispute_categories": [
+    "ITEM_NOT_RECEIVED",
+    "UNAUTHORIZED_TRANSACTION"
+   ]
+  },
+  "seller_receivable_breakdown": {
+   "gross_amount": {
+    "value": "10.99",
+    "currency_code": "USD"
+   },
+   "paypal_fee": {
+    "value": "0.33",
+    "currency_code": "USD"
+   },
+   "net_amount": {
+    "value": "10.66",
+    "currency_code": "USD"
+   }
+  },
+  "invoice_id": "INV-123",
+  "create_time": "2017-09-11T23:24:01Z",
+  "update_time": "2017-09-11T23:24:01Z",
+  "links": [
+   {
+    "rel": "self",
+    "method": "GET",
+    "href": "https://api-m.paypal.com/v2/payments/captures/2GG279541U471931P"
+   },
+   {
+    "rel": "refund",
+    "method": "POST",
+    "href": "https://api-m.paypal.com/v2/payments/captures/2GG279541U471931P/refund"
+   },
+   {
+    "rel": "up",
+    "method": "GET",
+    "href": "https://api-m.paypal.com/v2/payments/authorizations/0VF52814937998046"
+   }
+  ]
+ },
+ "POST /v2/payments/authorizations/{authorization_id}/capture 200 authorizations_capture_200_idempotent_response": {
+  "id": "23T524207X938445J",
+  "amount": {
+   "currency_code": "USD",
+   "value": "100.00"
+  },
+  "final_capture": false,
+  "seller_protection": {
+   "status": "ELIGIBLE",
+   "dispute_categories": [
+    "ITEM_NOT_RECEIVED",
+    "UNAUTHORIZED_TRANSACTION"
+   ]
+  },
+  "seller_receivable_breakdown": {
+   "gross_amount": {
+    "currency_code": "USD",
+    "value": "1.00"
+   },
+   "paypal_fee": {
+    "currency_code": "USD",
+    "value": "0.52"
+   },
+   "net_amount": {
+    "currency_code": "USD",
+    "value": "0.48"
+   },
+   "exchange_rate": {}
+  },
+  "invoice_id": "OrderInvoice-10_10_2024_12_58_20_pm",
+  "status": "COMPLETED",
+  "create_time": "2024-10-14T21:29:26Z",
+  "update_time": "2024-10-14T21:29:26Z",
+  "links": [
+   {
+    "href": "https://api-m.paypal.com/v2/payments/captures/23T524207X938445J",
+    "rel": "self",
+    "method": "GET"
+   },
+   {
+    "href": "https://api-m.paypal.com/v2/payments/captures/23T524207X938445J/refund",
+    "rel": "refund",
+    "method": "POST"
+   },
+   {
+    "href": "https://api-m.paypal.com/v2/payments/authorizations/6DR965477U7140544",
+    "rel": "up",
+    "method": "GET"
+   }
+  ]
+ },
+ "POST /v2/payments/authorizations/{authorization_id}/capture 422 authorizations_capture_422_amount_limit_exceeded": {
+  "name": "UNPROCCESSABLE_ENTITY",
+  "message": "The requested action could not be completed, is semantically incorrect, or failed business validation.",
+  "debug_id": "90bff07028f7f",
+  "details": [
+   {
+    "field": "/amount/value",
+    "value": "10.99",
+    "issue": "MAX_CAPTURE_AMOUNT_EXCEEDED",
+    "description": "Capture amount specified exceeded allowable limit. You can only capture up to the original authorization amount.",
+    "location": "body"
+   }
+  ]
+ },
+ "POST /v2/payments/authorizations/{authorization_id}/void 200 authorizations_void_200_idempotent_response": {
+  "id": "5C908745JK343851U",
+  "status": "VOIDED",
+  "amount": {
+   "currency_code": "USD",
+   "value": "100.00"
+  },
+  "invoice_id": "OrderInvoice-10_10_2024_12_06_00_pm",
+  "seller_protection": {
+   "status": "ELIGIBLE",
+   "dispute_categories": [
+    "ITEM_NOT_RECEIVED",
+    "UNAUTHORIZED_TRANSACTION"
+   ]
+  },
+  "expiration_time": "2024-11-08T09:06:03-08:00",
+  "create_time": "2024-10-10T10:06:03-07:00",
+  "update_time": "2024-10-10T10:06:19-07:00",
+  "links": [
+   {
+    "href": "https://api.paypal.com/v2/payments/authorizations/5C908745JK343851U",
+    "rel": "self",
+    "method": "GET"
+   }
+  ]
+ },
+ "POST /v2/payments/authorizations/{authorization_id}/void 422 authorizations_void_422_already_captured": {
+  "name": "UNPROCESSABLE_ENTITY",
+  "message": "The requested action could not be performed, semantically incorrect, or failed business validation.",
+  "debug_id": "a7b0de7cb97ad",
+  "details": [
+   {
+    "issue": "PREVIOUSLY_CAPTURED",
+    "description": "Authorization has been previously captured and cannot be voided."
+   }
+  ],
+  "links": [
+   {
+    "href": "https://developer.paypal.com/docs/api/payments/v2/#error-PREVIOUSLY_CAPTURED",
+    "rel": "information_link"
+   }
+  ]
+ },
+ "GET /v2/payments/captures/{capture_id} 200 capture_get_with_paypal_fee_receivable_currency": {
+  "id": "74L756601X447022Y",
+  "amount": {
+   "currency_code": "USD",
+   "value": "100.00"
+  },
+  "final_capture": true,
+  "seller_protection": {
+   "status": "ELIGIBLE",
+   "dispute_categories": [
+    "ITEM_NOT_RECEIVED",
+    "UNAUTHORIZED_TRANSACTION"
+   ]
+  },
+  "seller_receivable_breakdown": {
+   "gross_amount": {
+    "currency_code": "USD",
+    "value": "100.00"
+   },
+   "paypal_fee": {
+    "currency_code": "USD",
+    "value": "3.98"
+   },
+   "net_amount": {
+    "currency_code": "USD",
+    "value": "96.02"
+   }
+  },
+  "invoice_id": "OrderInvoice-23_10_2024_12_27_32_pm",
+  "status": "COMPLETED",
+  "supplementary_data": {
+   "related_ids": {
+    "order_id": "25M43554V9523650M",
+    "authorization_id": "0T620041CK889853A"
+   }
+  },
+  "payee": {
+   "email_address": "merchant@example.com",
+   "merchant_id": "YXZY75W2GKDQE"
+  },
+  "create_time": "2024-10-23T20:55:19Z",
+  "update_time": "2024-10-23T20:55:19Z",
+  "links": [
+   {
+    "href": "https://api-m.sandbox.paypal.com/v2/payments/captures/74L756601X447022Y",
+    "rel": "self",
+    "method": "GET"
+   },
+   {
+    "href": "https://api-m.sandbox.paypal.com/v2/payments/captures/74L756601X447022Y/refund",
+    "rel": "refund",
+    "method": "POST"
+   },
+   {
+    "href": "https://api-m.sandbox.paypal.com/v2/payments/authorizations/0T620041CK889853A",
+    "rel": "up",
+    "method": "GET"
+   }
+  ]
+ },
+ "GET /v2/payments/authorizations/{authorization_id} 200 authorizations_get": {
+  "id": "0VF52814937998046",
+  "status": "CREATED",
+  "amount": {
+   "value": "10.99",
+   "currency_code": "USD"
+  },
+  "invoice_id": "INVOICE-123",
+  "seller_protection": {
+   "status": "ELIGIBLE",
+   "dispute_categories": [
+    "ITEM_NOT_RECEIVED",
+    "UNAUTHORIZED_TRANSACTION"
+   ]
+  },
+  "payee": {
+   "email_address": "merchant@example.com",
+   "merchant_id": "7KNGBPH2U58GQ"
+  },
+  "expiration_time": "2017-10-10T23:23:45Z",
+  "create_time": "2017-09-11T23:23:45Z",
+  "update_time": "2017-09-11T23:23:45Z",
+  "links": [
+   {
+    "rel": "self",
+    "method": "GET",
+    "href": "https://api-m.paypal.com/v2/payments/authorizations/0VF52814937998046"
+   },
+   {
+    "rel": "capture",
+    "method": "POST",
+    "href": "https://api-m.paypal.com/v2/payments/authorizations/0VF52814937998046/capture"
+   },
+   {
+    "rel": "void",
+    "method": "POST",
+    "href": "https://api-m.paypal.com/v2/payments/authorizations/0VF52814937998046/void"
+   },
+   {
+    "rel": "reauthorize",
+    "method": "POST",
+    "href": "https://api-m.paypal.com/v2/payments/authorizations/0VF52814937998046/reauthorize"
+   }
+  ]
+ }
+}
