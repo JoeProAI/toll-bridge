@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TOLL BRIDGE — wring or turn back</title>
+<style>
+  /* Art direction: "LAST BOOTH BEFORE THE SPAN" — a hand-stamped toll ticket.
+     Ink-black steel, safety-orange, paper ticket cream. Everything wobbles
+     a half-degree, like it was letterpressed in a hurry. */
+  :root {
+    --ink: #131113;
+    --steel: #232027;
+    --orange: #ff5c1a;
+    --ticket: #f4ead2;
+    --lane-red: #d92b2b;
+    --lane-green: #2bd95a;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--ink);
+    color: var(--ticket);
+    font-family: "Courier New", ui-monospace, monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 4rem;
+    background-image:
+      repeating-linear-gradient(90deg, transparent 0 118px, #1b181d 118px 120px);
+  }
+  .gantlet {
+    width: 100%;
+    max-width: 720px;
+    border: 4px solid var(--ticket);
+    transform: rotate(-0.6deg);
+    background: var(--steel);
+    box-shadow: 10px 10px 0 var(--orange);
+  }
+  header {
+    background: var(--orange);
+    color: var(--ink);
+    padding: 1rem 1.25rem 0.75rem;
+    border-bottom: 4px dashed var(--ink);
+  }
+  header h1 {
+    font-size: clamp(1.8rem, 6vw, 3rem);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  header p { font-size: 0.8rem; margin-top: 0.4rem; font-weight: bold; }
+  .lane {
+    display: flex; gap: 0.5rem; align-items: center;
+    padding: 0.6rem 1.25rem; font-size: 0.75rem; letter-spacing: 0.15em;
+    border-bottom: 2px solid #3a3540;
+  }
+  .lamp { width: 14px; height: 14px; border-radius: 50%; background: var(--lane-red); }
+  .lamp.go { background: var(--lane-green); box-shadow: 0 0 12px var(--lane-green); }
+  main { padding: 1.25rem; display: grid; gap: 1rem; }
+  textarea {
+    width: 100%; min-height: 9rem; resize: vertical;
+    background: var(--ticket); color: var(--ink);
+    border: 3px solid var(--ink); padding: 0.75rem;
+    font: inherit; font-size: 0.85rem;
+    box-shadow: inset 4px 4px 0 #d9cba6;
+  }
+  .row { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; }
+  select, button {
+    font: inherit; font-weight: bold; text-transform: uppercase;
+    letter-spacing: 0.1em; cursor: pointer;
+    border: 3px solid var(--ticket); background: var(--steel); color: var(--ticket);
+    padding: 0.6rem 1rem;
+  }
+  button.pay { background: var(--orange); color: var(--ink); border-color: var(--ink); }
+  button:active { transform: translate(2px, 2px); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .ticket {
+    background: var(--ticket); color: var(--ink);
+    border: 3px dashed var(--ink); padding: 0.9rem 1rem;
+    transform: rotate(0.4deg); font-size: 0.8rem;
+    display: none; position: relative;
+  }
+  .ticket::before, .ticket::after {
+    content: ""; position: absolute; top: 50%; width: 22px; height: 22px;
+    background: var(--steel); border-radius: 50%; transform: translateY(-50%);
+  }
+  .ticket::before { left: -14px; }
+  .ticket::after { right: -14px; }
+  .ticket.show { display: block; }
+  .ticket b { color: var(--lane-red); }
+  pre {
+    background: #0c0a0e; border: 3px solid var(--ticket);
+    padding: 1rem; font-size: 0.75rem; overflow: auto;
+    max-height: 22rem; display: none; white-space: pre-wrap;
+  }
+  pre.show { display: block; }
+  .stamp {
+    display: none; position: absolute; right: 0.8rem; top: 0.5rem;
+    color: var(--lane-red); border: 3px solid var(--lane-red);
+    padding: 0.15rem 0.5rem; font-weight: bold; font-size: 0.9rem;
+    transform: rotate(8deg); letter-spacing: 0.2em;
+  }
+  .ticket.paid .stamp { display: inline-block; }
+  footer { margin-top: 2rem; font-size: 0.7rem; opacity: 0.6; letter-spacing: 0.2em; }
+</style>
+</head>
+<body>
+<div class="gantlet">
+  <header>
+    <h1>Toll Bridge</h1>
+    <p>WRINGER LITE — EXACT CHANGE FOR EXACT ANSWERS — $0.05 PER WRING</p>
+  </header>
+  <div class="lane"><span class="lamp" id="lamp"></span><span id="lane-status">LANE CLOSED — NO PASSAGE WITHOUT PAYMENT</span></div>
+  <main>
+    <textarea id="input" placeholder="Paste the messy thing: an article, a transcript, a product page..."></textarea>
+    <div class="row">
+      <select id="mode">
+        <option value="brief">brief</option>
+        <option value="summary">summary</option>
+        <option value="claims">claims</option>
+      </select>
+      <button id="btn-approach">Approach booth</button>
+      <button id="btn-pay" class="pay" disabled>Pay $0.05</button>
+      <button id="btn-cross" disabled>Cross the bridge</button>
+    </div>
+    <div class="ticket" id="ticket">
+      <span class="stamp">PAID</span>
+      <div id="ticket-body">Awaiting quote...</div>
+    </div>
+    <pre id="out"></pre>
+  </main>
+</div>
+<footer>ONE BOOTH. ONE LANE. NO REFUNDS UNLESS THE BRIDGE FALLS.</footer>
+<script>
+const $ = (id) => document.getElementById(id);
+let receipt = null;
+const sample = `The Old Salvage Bridge was built in 1911 and carries 4,000 vehicles a day. Inspectors found corrosion on 12 of 276 suspender ropes last spring. The city council claims the toll revenue covers all maintenance. What happens to freight traffic if the bridge closes for a year?`;
+$("input").value = sample;
+
+$("btn-approach").onclick = async () => {
+  const r = await fetch("/wring", {method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({input: $("input").value, mode: $("mode").value})});
+  const body = await r.json();
+  $("ticket").classList.add("show");
+  if (r.status === 402) {
+    const q = body.quote;
+    $("ticket-body").innerHTML =
+      `402 PAYMENT REQUIRED<br>QUOTE <b>${q.quote_id}</b><br>` +
+      `TOLL: $${q.amount.value} ${q.amount.currency_code} — flow: ${q.flow}`;
+    $("btn-pay").disabled = false;
+    $("lane-status").textContent = "TOLL DUE — FEED THE BASKET";
+  }
+};
+
+$("btn-pay").onclick = async () => {
+  const quoteId = $("ticket-body").querySelector("b").textContent;
+  const r = await fetch("/pay", {method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({quote_id: quoteId})});
+  receipt = await r.json();
+  $("ticket").classList.add("paid");
+  $("ticket-body").innerHTML += `<br>CAPTURE <b>${receipt.capture_id}</b>`;
+  $("btn-pay").disabled = true;
+  $("btn-cross").disabled = false;
+  $("lamp").classList.add("go");
+  $("lane-status").textContent = "LANE OPEN — GATE ARM UP";
+};
+
+$("btn-cross").onclick = async () => {
+  const r = await fetch("/wring", {method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({input: $("input").value, mode: $("mode").value, receipt})});
+  const out = await r.json();
+  $("out").classList.add("show");
+  $("out").textContent = JSON.stringify(out, null, 2);
+  $("btn-cross").disabled = true;
+};
+</script>
+</body>
+</html>
