@@ -38,7 +38,7 @@ async function getTab(): Promise<{ tab: TabState; approval: "sandbox-card" | "bu
     name: "Toll Bridge Proof",
   };
   if (process.env.PROOF_APPROVAL !== "buyer") {
-    const o = await openTab(d, BUDGET);
+    const o = await openTab(d, BUDGET, { payer: "card" });
     ev("order.created", { order_id: o.orderId, status: o.status, approval: "sandbox-card" });
     try {
       return { tab: await claimTab(d, o.pending, { card }), approval: "sandbox-card" };

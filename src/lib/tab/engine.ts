@@ -50,7 +50,7 @@ export function openPendingToken(secret: string, token: string): PendingTab {
 }
 
 // 1. Open: create an AUTHORIZE order for the budget. The payer approves it in PayPal.
-export async function openTab(d: Deps, budgetCents: number) {
+export async function openTab(d: Deps, budgetCents: number, opts: { payer?: "paypal" | "card" } = {}) {
   if (!Number.isInteger(budgetCents) || budgetCents < PRICES_CENTS.wring || budgetCents > MAX_BUDGET_CENTS) {
     throw new TollError(400, "bad_budget", `Budget must be between ${toValue(PRICES_CENTS.wring)} and ${toValue(MAX_BUDGET_CENTS)} USD.`);
   }
@@ -63,6 +63,7 @@ export async function openTab(d: Deps, budgetCents: number) {
     returnUrl: `${d.baseUrl}/open/return`,
     cancelUrl: `${d.baseUrl}/open?cancelled=1`,
     requestId: `order-${id}`,
+    payer: opts.payer,
   });
   const pending: PendingTab = { v: 1, id, mode: d.paypal.mode, orderId: order.id, heldCents: budgetCents, createdAt: nowIso(d) };
   syncFixtures(d, pending);
@@ -73,10 +74,11 @@ export async function openTab(d: Deps, budgetCents: number) {
 // Safe to repeat: a completed order is adopted instead of re-authorized.
 export async function claimTab(d: Deps, pending: PendingTab, opts: { card?: CardSource } = {}): Promise<TabState> {
   let order = await d.paypal.getOrder(pending.orderId);
-  if (order.status === "CREATED" && !opts.card) {
+  const waiting = order.status === "CREATED" || order.status === "PAYER_ACTION_REQUIRED";
+  if (waiting && !opts.card) {
     throw new TollError(409, "awaiting_approval", "The payer hasn't approved this hold in PayPal yet.", { orderId: order.id });
   }
-  if (order.status === "APPROVED" || (order.status === "CREATED" && opts.card)) {
+  if (order.status === "APPROVED" || (waiting && opts.card)) {
     order = await d.paypal.authorizeOrder(pending.orderId, { requestId: `auth-${pending.id}`, card: opts.card });
   }
   const auth = firstAuthorization(order);

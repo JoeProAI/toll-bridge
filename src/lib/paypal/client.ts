@@ -8,6 +8,8 @@ export interface CreateOrderInput {
   returnUrl?: string;
   cancelUrl?: string;
   requestId: string;
+  // "card": no PayPal wallet experience, so a card can authorize it directly.
+  payer?: "paypal" | "card";
 }
 
 export interface CaptureInput {

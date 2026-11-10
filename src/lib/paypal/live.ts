@@ -65,7 +65,7 @@ export class LiveSandboxPayPal implements PayPalClient {
           amount: input.amount,
         },
       ],
-      payment_source: {
+      ...(input.payer === "card" ? {} : { payment_source: {
         paypal: {
           experience_context: {
             brand_name: "Toll Bridge",
@@ -75,7 +75,7 @@ export class LiveSandboxPayPal implements PayPalClient {
             cancel_url: input.cancelUrl,
           },
         },
-      },
+      } }),
     };
     return (await this.call<Order>("POST", "/v2/checkout/orders", body, input.requestId))!;
   }
