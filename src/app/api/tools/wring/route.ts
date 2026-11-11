@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
       verdict: { pass: r.verdict.pass, score: r.verdict.score, checks: r.verdict.checks, reasons: r.verdict.reasons, judge: r.verdict.judge },
       result: r.record.verdict === "pass" && !r.record.chargeError ? r.brief : null,
       rejected_output: r.record.verdict === "pass" && !r.record.chargeError ? null : r.brief,
-      receipt: receiptFor(d, r.tab, r.record),
+      receipt: receiptFor(d, r.tab, r.record, r.replayed ? undefined : r.sourceText),
       snapshot: r.replayed ? null : { sha256: r.record.pageSha256, chars: r.sourceText.length },
       tab_token: token,
     });

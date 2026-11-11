@@ -12,7 +12,8 @@
     "demo": "tsx scripts/demo-agent.mts",
     "proof": "tsx scripts/proof.mts",
     "proof:live": "tsx scripts/live-proof.mts",
-    "rsl:check": "tsx scripts/rsl-check.mts"
+    "rsl:check": "tsx scripts/rsl-check.mts",
+    "verify-receipt": "tsx scripts/verify-receipt.mts"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.4.0",

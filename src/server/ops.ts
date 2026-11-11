@@ -85,7 +85,7 @@ export async function opWring(tabToken: string, quoteToken: string, input: strin
     call: callView(r.record),
     replayed: r.replayed,
     result: r.record.verdict === "pass" && !r.record.chargeError ? r.brief : null,
-    receipt: receiptFor(d, r.tab, r.record),
+    receipt: receiptFor(d, r.tab, r.record, r.replayed ? undefined : r.sourceText),
     tab_token: sealTab(d, r.tab),
   };
 }

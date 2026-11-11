@@ -1,6 +1,7 @@
 import { PRICES_CENTS } from "@/lib/config";
 import { toValue } from "@/lib/money";
 import { signReceipt, receiptPayload } from "@/lib/receipt";
+import { receiptKey } from "./deps";
 import { earnsRoyalty, pollPayout, type PayoutPlan } from "@/lib/royalty/ledger";
 import { reconcile, royaltyDeps, sealTab, summarize, type Deps } from "@/lib/tab/engine";
 import type { CallRecord, TabState } from "@/lib/tab/types";
@@ -110,6 +111,6 @@ export async function tabView(d: Deps, tabIn: TabState) {
   };
 }
 
-export function receiptFor(d: Deps, tab: TabState, c: CallRecord) {
-  return signReceipt(receiptPayload(tab, c), d.secret);
+export function receiptFor(d: Deps, tab: TabState, c: CallRecord, snapshot?: string) {
+  return signReceipt(receiptPayload(tab, c), receiptKey(), d.baseUrl, snapshot);
 }
