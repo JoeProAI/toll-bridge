@@ -1,10 +1,14 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { ChatModel } from "../ai/model";
-import { MAX_BUDGET_CENTS, MAX_CALLS_PER_TAB, MIN_INPUT_CHARS, PRICES_CENTS, QUOTE_TTL_MS, type ToolName } from "../config";
+import { MAX_BUDGET_CENTS, MAX_CALLS_PER_TAB, MIN_INPUT_CHARS, PRICES_CENTS, QUOTE_TTL_MS, type SettlementMode, type ToolName } from "../config";
 import { toCents, toValue } from "../money";
 import { approveLink, firstAuthorization, PayPalApiError, type CardSource, type PayPalClient } from "../paypal/client";
 import { FixturePayPal } from "../paypal/fixtures";
-import { resolveSource, SourceError } from "../tools/source";
+import type { Kv } from "../royalty/kv";
+import { earnsRoyalty, pollPayout, settleRoyalties } from "../royalty/ledger";
+import { checkRsl, publicRsl, rslAllowsRun, type RslCheck, type RslFetcher } from "../rsl";
+import { resolveSource, SourceError, type ResolvedSource } from "../tools/source";
+import { normalize, spanMatches } from "../tools/spans";
 import type { Brief } from "../tools/brief";
 import { runWring } from "../tools/wring";
 import { verify, type Verdict } from "../verify/verifier";
@@ -18,6 +22,12 @@ export interface Deps {
   secret: string;
   baseUrl: string;
   now?: () => Date;
+  // Fetches pages and RSL files. Tests inject recorded fixtures.
+  fetcher?: RslFetcher;
+  kv?: Kv | null;
+  thresholdCents?: number;
+  // Settlement for new tabs. Defaults to per-call; the app passes settlementMode().
+  settlement?: SettlementMode;
 }
 
 export class TollError extends Error {
@@ -28,6 +38,16 @@ export class TollError extends Error {
     readonly extra: Record<string, unknown> = {},
   ) {
     super(message);
+  }
+}
+
+// A source whose RSL terms forbid our use. Refused before anything runs, at 0.00.
+export class RefusedError extends TollError {
+  constructor(
+    readonly tab: TabState,
+    readonly record: CallRecord,
+  ) {
+    super(451, "rsl_refused", `Refused before running, charged 0.00: ${record.rsl?.reason ?? "the page's license forbids AI input"}`, { price: "0.00" });
   }
 }
 
@@ -65,7 +85,7 @@ export async function openTab(d: Deps, budgetCents: number, opts: { payer?: "pay
     requestId: `order-${id}`,
     payer: opts.payer,
   });
-  const pending: PendingTab = { v: 1, id, mode: d.paypal.mode, orderId: order.id, heldCents: budgetCents, createdAt: nowIso(d) };
+  const pending: PendingTab = { v: 1, id, mode: d.paypal.mode, orderId: order.id, heldCents: budgetCents, settlement: d.settlement ?? "per-call", createdAt: nowIso(d) };
   syncFixtures(d, pending);
   return { pending, pendingToken: seal("pending", pending, d.secret), orderId: order.id, approveUrl: approveLink(order), status: order.status };
 }
@@ -95,6 +115,7 @@ export async function claimTab(d: Deps, pending: PendingTab, opts: { card?: Card
     currency: "USD",
     heldCents: toCents(auth.amount?.value ?? toValue(pending.heldCents)),
     status: "open",
+    settlement: pending.settlement ?? "per-call",
     openedAt: nowIso(d),
     expiresAt: auth.expiration_time,
     payer: order.payer?.email_address,
@@ -137,15 +158,72 @@ function assertOpen(tab: TabState) {
   if (tab.calls.length >= MAX_CALLS_PER_TAB) throw new TollError(429, "call_limit", `A tab allows ${MAX_CALLS_PER_TAB} calls.`);
 }
 
-// 3. Quote: the 402 answer. Prices a call against what's left on the hold.
-export async function quote(d: Deps, tab: TabState, tool: ToolName, sourceText: string) {
+export const settlementOf = (tab: TabState): SettlementMode => tab.settlement ?? "per-call";
+
+// Owed by passing calls but not captured yet (tab settlement).
+export function accruedCents(tab: TabState): number {
+  return tab.calls.filter((c) => c.verdict === "pass" && !c.captureId && !c.chargeError).reduce((s, c) => s + (c.chargeCents ?? c.priceCents), 0);
+}
+
+export interface Inspected {
+  source: ResolvedSource;
+  rsl?: RslCheck;
+}
+
+// Reads the input once: page text for the tool, RSL terms for the royalty.
+export async function inspectSource(d: Deps, rawInput: string): Promise<Inspected> {
+  let source: ResolvedSource;
+  try {
+    source = await resolveSource(rawInput, d.fetcher);
+  } catch (e) {
+    throw new TollError(422, "bad_source", e instanceof SourceError ? e.message : "Couldn't read that input.");
+  }
+  if (!source.url || !source.page) return { source };
+  const rsl = await checkRsl(source.url, { fetcher: d.fetcher, page: source.page });
+  return { source, rsl };
+}
+
+function rslSummary(r: RslCheck): NonNullable<CallRecord["rsl"]> {
+  return { status: r.status, reason: r.reason, licenseUrl: r.licenseUrl, via: r.via, policyHash: r.policyHash };
+}
+
+// 3. Quote: the 402 answer. Tool fee plus the source's RSL royalty, priced
+// against what's left on the hold. Prohibited and OLP sources are refused.
+export async function quote(d: Deps, tab: TabState, tool: ToolName, rawInput: string) {
   assertOpen(tab);
   const price = PRICES_CENTS[tool];
   if (!price) throw new TollError(404, "unknown_tool", `No tool called ${tool}.`);
+  const { source, rsl } = await inspectSource(d, rawInput);
+  const rslRec = rsl ? rslSummary(rsl) : undefined;
+  if (rsl && !rslAllowsRun(rsl)) {
+    const record: CallRecord = {
+      id: rid("call"),
+      qid: rid("q"),
+      tool,
+      priceCents: 0,
+      verdict: "refused",
+      score: 0,
+      checks: [],
+      reasons: [rsl.reason.slice(0, 160)],
+      title: (source.url ?? "").slice(0, 80),
+      inputHash: hashInput(source.text),
+      source: source.url,
+      rsl: rslRec,
+      chargeCents: 0,
+      at: nowIso(d),
+      ms: 0,
+    };
+    const next: TabState = { ...tab, calls: [...tab.calls, record] };
+    syncFixtures(d, next);
+    throw new RefusedError(next, record);
+  }
+  const royalty = rsl?.status === "paid_use" && rsl.payee && rsl.royaltyCents ? { cents: rsl.royaltyCents, payee: rsl.payee, policyHash: rsl.policyHash, licenseUrl: rsl.licenseUrl } : undefined;
+  const total = price + (royalty?.cents ?? 0);
   const truth = await reconcile(d, tab);
-  if (truth.remainingCents < price) {
-    throw new TollError(402, "insufficient_hold", `This call costs ${toValue(price)} but only ${toValue(truth.remainingCents)} is left on the hold.`, {
-      remaining: toValue(truth.remainingCents),
+  const available = Math.max(0, truth.remainingCents - accruedCents(tab));
+  if (available < total) {
+    throw new TollError(402, "insufficient_hold", `This call costs ${toValue(total)} but only ${toValue(available)} is left on the hold.`, {
+      remaining: toValue(available),
     });
   }
   const q: Quote = {
@@ -153,15 +231,27 @@ export async function quote(d: Deps, tab: TabState, tool: ToolName, sourceText: 
     tab: tab.id,
     tool,
     priceCents: price,
-    inputHash: hashInput(sourceText),
+    inputHash: hashInput(source.text),
+    sourceUrl: source.url,
+    rsl: rslRec,
+    royalty,
     exp: (d.now?.() ?? new Date()).getTime() + QUOTE_TTL_MS,
   };
   return {
     quote: q,
     quoteToken: seal("quote", q, d.secret),
-    price: { currency_code: "USD", value: toValue(price) },
-    remaining: { currency_code: "USD", value: toValue(truth.remainingCents) },
-    terms: "Charged only if the result passes verification. Failed calls cost nothing.",
+    price: { currency_code: "USD", value: toValue(total) },
+    lines: [
+      { kind: "tool_fee", tool, amount: toValue(price) },
+      ...(royalty ? [{ kind: "royalty", amount: toValue(royalty.cents), payee: royalty.payee, license_url: royalty.licenseUrl, policy_hash: royalty.policyHash, terms: "RSL 1.0 payment type=use" }] : []),
+    ],
+    rsl: rsl ? publicRsl(rsl) : null,
+    remaining: { currency_code: "USD", value: toValue(available) },
+    settlement: settlementOf(tab),
+    terms: royalty
+      ? "Charged only if the result passes verification. The royalty is paid to the writer only if a claim quoting their page passes the span check. Failed calls cost nothing."
+      : "Charged only if the result passes verification. Failed calls cost nothing.",
+    source: { text: source.text, url: source.url },
   };
 }
 
@@ -191,18 +281,20 @@ export async function callTool(d: Deps, tab: TabState, quoteToken: string, rawIn
   assertOpen(tab);
   if ((d.now?.() ?? new Date()).getTime() > q.exp) throw new TollError(402, "quote_expired", "That quote expired. Ask for a new one.");
 
-  let source: { text: string; url?: string };
+  let source: ResolvedSource;
   try {
-    source = await resolveSource(rawInput);
+    source = await resolveSource(rawInput, d.fetcher);
   } catch (e) {
     throw new TollError(422, "bad_source", e instanceof SourceError ? e.message : "Couldn't read that input.");
   }
   if (hashInput(source.text) !== q.inputHash) throw new TollError(402, "quote_mismatch", "The input changed after it was quoted. Ask for a new quote.");
   if (source.text.length < MIN_INPUT_CHARS) throw new TollError(422, "input_too_short", `Give wring at least ${MIN_INPUT_CHARS} characters.`);
 
+  const total = q.priceCents + (q.royalty?.cents ?? 0);
   const truth = await reconcile(d, tab);
-  if (truth.remainingCents < q.priceCents) {
-    throw new TollError(402, "insufficient_hold", `Only ${toValue(truth.remainingCents)} is left on the hold.`, { remaining: toValue(truth.remainingCents) });
+  const available = Math.max(0, truth.remainingCents - accruedCents(tab));
+  if (available < total) {
+    throw new TollError(402, "insufficient_hold", `Only ${toValue(available)} is left on the hold.`, { remaining: toValue(available) });
   }
 
   let brief: Brief | null = null;
@@ -224,6 +316,11 @@ export async function callTool(d: Deps, tab: TabState, quoteToken: string, rawIn
   } catch (e) {
     verdict = { pass: false, score: 0, checks: [], reasons: [`the tool failed to run: ${(e as Error).message}`.slice(0, 160)] };
   }
+  verdict = hiddenTextCheck(verdict, brief, source.hidden);
+  const spans = (brief?.claims ?? [])
+    .filter((c) => c.span && spanMatches(source.text, c.span, c.quote))
+    .slice(0, 6)
+    .map((c) => ({ start: c.span!.start, end: c.span!.end, quote: source.text.slice(c.span!.start, c.span!.end) }));
 
   const record: CallRecord = {
     id: rid("call"),
@@ -238,15 +335,21 @@ export async function callTool(d: Deps, tab: TabState, quoteToken: string, rawIn
     inputHash: q.inputHash,
     source: source.url,
     model,
+    judgeModel: verdict.judge?.model ?? d.judge.name,
     attempts,
+    rsl: q.rsl,
+    royalty: q.royalty,
+    pageSha256: q.inputHash,
+    spans: verdict.pass ? spans : [],
     at: nowIso(d),
     ms: 0,
   };
 
-  if (verdict.pass) {
+  record.chargeCents = verdict.pass ? q.priceCents + (earnsRoyalty(record) ? record.royalty!.cents : 0) : 0;
+  if (verdict.pass && settlementOf(tab) === "per-call") {
     try {
       const cap = await d.paypal.captureAuthorization(tab.authorizationId, {
-        amount: { currency_code: "USD", value: toValue(q.priceCents) },
+        amount: { currency_code: "USD", value: toValue(record.chargeCents) },
         finalCapture: false,
         invoiceId: `${tab.id}-${q.qid}`.slice(0, 127),
         noteToPayer: `Toll Bridge: ${q.tool} result passed checks (score ${verdict.score}/10)`,
@@ -254,6 +357,8 @@ export async function callTool(d: Deps, tab: TabState, quoteToken: string, rawIn
       });
       record.captureId = cap.id;
       record.captureStatus = cap.status;
+      const fee = cap.seller_receivable_breakdown?.paypal_fee;
+      if (fee) record.captureFeeCents = toCents(fee.value);
     } catch (e) {
       record.chargeError = e instanceof PayPalApiError ? `${e.issue ?? e.status}` : (e as Error).message.slice(0, 120);
       brief = null;
@@ -265,30 +370,83 @@ export async function callTool(d: Deps, tab: TabState, quoteToken: string, rawIn
   return { tab: next, record, brief, verdict, replayed: false, sourceText: source.text };
 }
 
-// 5. Close: void whatever is still held. Captures stay; the rest goes back.
+// 5. Close. Per-call: void whatever is still held. Tab: one final capture of
+// everything the passing calls owe, then void only if PayPal still holds a
+// remainder (a final capture releases it). Then pay the writers.
 export async function closeTab(d: Deps, tab: TabState) {
-  if (tab.status === "closed") return { tab, truth: await reconcile(d, tab), voided: false };
-  const before = await reconcile(d, tab);
-  let action: "void" | "none" = "none";
-  if (before.authorizationStatus === "CREATED" || before.authorizationStatus === "PARTIALLY_CAPTURED") {
-    await d.paypal.voidAuthorization(tab.authorizationId, { requestId: `void-${tab.id}` });
-    action = "void";
+  if (tab.status === "closed") {
+    const payout = tab.payout ? await pollPayout(royaltyDeps(d), tab.payout, tab) : undefined;
+    return { tab: payout ? { ...tab, payout } : tab, truth: await reconcile(d, tab), voided: false };
   }
-  const truth = await reconcile(d, tab);
-  const next: TabState = {
-    ...tab,
+  let next: TabState = { ...tab };
+  const owed = accruedCents(tab);
+  if (settlementOf(tab) === "tab" && owed > 0) {
+    const before = await reconcile(d, tab);
+    // A stale token may arrive after the close already captured: adopt that capture.
+    const prior = before.captures.find((c) => c.invoiceId === `${tab.id}-close`);
+    const open = before.authorizationStatus === "CREATED" || before.authorizationStatus === "PARTIALLY_CAPTURED";
+    if (prior || open) {
+      const passed = tab.calls.filter((c) => c.verdict === "pass").length;
+      const cap = prior ? await d.paypal.getCapture(prior.id) : await d.paypal.captureAuthorization(tab.authorizationId, {
+        amount: { currency_code: "USD", value: toValue(owed) },
+        finalCapture: true,
+        invoiceId: `${tab.id}-close`.slice(0, 127),
+        noteToPayer: `Toll Bridge: ${passed} verified call${passed === 1 ? "" : "s"}. The rest of the hold is released.`,
+        requestId: `cap-${tab.id}-close`,
+      });
+      const b = cap.seller_receivable_breakdown;
+      next.finalCapture = {
+        id: cap.id,
+        status: cap.status,
+        cents: cap.amount ? toCents(cap.amount.value) : owed,
+        feeCents: b?.paypal_fee ? toCents(b.paypal_fee.value) : undefined,
+        netCents: b?.net_amount ? toCents(b.net_amount.value) : undefined,
+      };
+      next.calls = tab.calls.map((c) => (c.verdict === "pass" && !c.captureId ? { ...c, captureId: cap.id, captureStatus: cap.status } : c));
+    }
+  }
+  const mid = await reconcile(d, next);
+  let voided = false;
+  if (mid.authorizationStatus === "CREATED" || mid.authorizationStatus === "PARTIALLY_CAPTURED") {
+    await d.paypal.voidAuthorization(tab.authorizationId, { requestId: `void-${tab.id}` });
+    voided = true;
+  }
+  const truth = await reconcile(d, next);
+  next = {
+    ...next,
     status: "closed",
     closedAt: nowIso(d),
-    closeAction: action,
-    voidedCents: action === "void" ? truth.heldCents - truth.capturedCents : 0,
+    closeAction: next.finalCapture ? (voided ? "final-capture+void" : "final-capture") : voided ? "void" : "none",
+    // What went back to the payer, whether by void or by the final capture's release.
+    voidedCents: Math.max(0, truth.heldCents - truth.capturedCents),
   };
+  const payout = await settleRoyalties(royaltyDeps(d), next);
+  if (payout) next.payout = payout;
   syncFixtures(d, next);
-  return { tab: next, truth, voided: action === "void" };
+  return { tab: next, truth, voided };
+}
+
+export function royaltyDeps(d: Deps) {
+  return { paypal: d.paypal, kv: d.kv ?? null, thresholdCents: d.thresholdCents ?? 500, now: d.now };
+}
+
+// A claim quoting text a reader can't see (off-screen, display:none) is how a
+// prompt injection gets into a brief. That fails the call.
+export function hiddenTextCheck(verdict: Verdict, brief: Brief | null, hidden: string[]): Verdict {
+  if (!brief || !hidden.length) return verdict;
+  const hiddenNorm = hidden.map(normalize);
+  const bad = brief.claims.map((c, i) => ({ i, q: normalize(c.quote) })).filter(({ q }) => q.length >= 12 && hiddenNorm.some((h) => h.includes(q) || q.includes(h)));
+  if (!bad.length) return { ...verdict, checks: [...verdict.checks, { name: "hidden", pass: true, detail: "no claim quotes hidden text" }] };
+  const detail = `claim ${bad.map((b) => b.i + 1).join(", ")}: quotes text hidden from readers (likely a prompt injection)`;
+  return { ...verdict, pass: false, score: verdict.pass ? 0 : verdict.score, checks: [...verdict.checks, { name: "hidden", pass: false, detail }], reasons: [detail, ...verdict.reasons] };
 }
 
 export function summarize(tab: TabState, truth: Reconciled) {
   const passed = tab.calls.filter((c) => c.verdict === "pass");
   const failed = tab.calls.filter((c) => c.verdict === "fail");
+  const refused = tab.calls.filter((c) => c.verdict === "refused");
+  const royalties = tab.calls.filter(earnsRoyalty).reduce((s, c) => s + c.royalty!.cents, 0);
+  const owed = tab.status === "open" ? accruedCents(tab) : 0;
   return {
     tab_id: tab.id,
     mode: tab.mode,
@@ -298,11 +456,16 @@ export function summarize(tab: TabState, truth: Reconciled) {
     authorization_status: truth.authorizationStatus,
     held: toValue(truth.heldCents),
     captured: toValue(truth.capturedCents),
-    remaining: toValue(truth.remainingCents),
+    remaining: toValue(Math.max(0, truth.remainingCents - owed)),
+    accrued: toValue(owed),
+    settlement: settlementOf(tab),
+    royalties_earned: toValue(royalties),
+    close_action: tab.closeAction ?? null,
     voided: tab.status === "closed" ? toValue(tab.voidedCents ?? 0) : "0.00",
     calls: tab.calls.length,
     passed: passed.length,
     failed: failed.length,
+    refused: refused.length,
     not_charged: toValue(failed.reduce((s, c) => s + c.priceCents, 0)),
     expires_at: truth.expiresAt,
     truth_source: truth.source,

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { TollError } from "@/lib/tab/engine";
 import { depsFor } from "@/server/deps";
 import { errorResponse, readTab } from "@/server/http";
-import { callView } from "@/server/views";
+import { callView, receiptFor } from "@/server/views";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +17,7 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     const capture = call.captureId ? await d.paypal.getCapture(call.captureId) : null;
     return NextResponse.json({
       call: callView(call),
+      receipt: receiptFor(d, tab, call),
       capture,
       order_id: tab.orderId,
       authorization_id: tab.authorizationId,

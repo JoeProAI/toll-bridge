@@ -1,11 +1,11 @@
 import { toCents } from "@/lib/money";
 import type { FixturePayPal } from "@/lib/paypal/fixtures";
-import { callTool, claimTab, closeTab, openPendingToken, openTab, openTabToken, quote, sealTab, TollError } from "@/lib/tab/engine";
+import { callTool, claimTab, closeTab, openPendingToken, openTab, openTabToken, quote, RefusedError, sealTab, TollError } from "@/lib/tab/engine";
+import { checkRsl, publicRsl } from "@/lib/rsl";
 import { seal } from "@/lib/tab/token";
 import { tabSecret } from "@/lib/config";
-import { resolveSource, SourceError } from "@/lib/tools/source";
 import { depsFor } from "./deps";
-import { callView, tabView } from "./views";
+import { callView, receiptFor, tabView } from "./views";
 
 // Shared by the MCP server. Tokens travel in tool arguments, so the
 // server stays stateless and works the same on serverless.
@@ -53,14 +53,28 @@ export async function opStatus(tabToken: string) {
 export async function opQuote(tabToken: string, input: string) {
   const tab = tabFrom(tabToken);
   const d = depsFor({ mode: tab.mode, fx: tab.fx });
-  let text: string;
   try {
-    text = (await resolveSource(input)).text;
+    const q = await quote(d, tab, "wring", input);
+    return {
+      status: 402,
+      quote_id: q.quote.qid,
+      price: q.price,
+      lines: q.lines,
+      rsl: q.rsl,
+      settlement: q.settlement,
+      remaining: q.remaining,
+      expires_at: new Date(q.quote.exp).toISOString(),
+      terms: q.terms,
+      quote_token: q.quoteToken,
+    };
   } catch (e) {
-    throw new TollError(422, "bad_source", e instanceof SourceError ? e.message : "Couldn't read that input.");
+    if (!(e instanceof RefusedError)) throw e;
+    return { status: 451, refused: true, price: "0.00", message: e.message, rsl: e.record.rsl, call: callView(e.record), tab_token: sealTab(d, e.tab) };
   }
-  const q = await quote(d, tab, "wring", text);
-  return { status: 402, quote_id: q.quote.qid, price: q.price, remaining: q.remaining, expires_at: new Date(q.quote.exp).toISOString(), terms: q.terms, quote_token: q.quoteToken };
+}
+
+export async function opRslCheck(url: string) {
+  return publicRsl(await checkRsl(url));
 }
 
 export async function opWring(tabToken: string, quoteToken: string, input: string) {
@@ -70,7 +84,8 @@ export async function opWring(tabToken: string, quoteToken: string, input: strin
   return {
     call: callView(r.record),
     replayed: r.replayed,
-    result: r.record.captureId ? r.brief : null,
+    result: r.record.verdict === "pass" && !r.record.chargeError ? r.brief : null,
+    receipt: receiptFor(d, r.tab, r.record),
     tab_token: sealTab(d, r.tab),
   };
 }

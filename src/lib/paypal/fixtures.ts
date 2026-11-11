@@ -1,6 +1,6 @@
 import { toCents, toValue } from "../money";
-import { PayPalApiError, type CaptureInput, type CardSource, type CreateOrderInput, type PayPalClient } from "./client";
-import type { Authorization, Capture, Order } from "./types";
+import { PayPalApiError, type CaptureInput, type CardSource, type CreateOrderInput, type CreatePayoutInput, type PayPalClient } from "./client";
+import type { Authorization, Capture, Order, PayoutBatch } from "./types";
 
 // Offline stand-in for the PayPal sandbox. Response shapes follow the
 // recorded examples in ./recorded/spec-examples.json (taken from PayPal's
@@ -14,6 +14,7 @@ export interface FixtureState {
   auths: Record<string, Authorization & { order_id: string; captured_cents: number }>;
   captures: Record<string, Capture & { authorization_id: string }>;
   requests: Record<string, string>;
+  payouts?: Record<string, PayoutBatch & { reads: number }>;
 }
 
 export function emptyFixtureState(): FixtureState {
@@ -35,6 +36,17 @@ function err(status: number, endpoint: string, issue: string, description: strin
     endpoint,
   );
 }
+
+// Mirrors what the sandbox charged us in the spike: 1.50 gross, 0.53 fee
+// (2.99% + 0.49, rounded). Fixtures only; live runs show PayPal's number.
+function fixtureFee(cents: number, currency: string) {
+  const fee = Math.min(cents, Math.round(cents * 0.0299 + 49));
+  const m = (c: number) => ({ currency_code: currency, value: toValue(c) });
+  return { gross_amount: m(cents), paypal_fee: m(fee), net_amount: m(cents - fee) };
+}
+
+// The sandbox charged 0.25 per payout item in the spike.
+export const FIXTURE_PAYOUT_ITEM_FEE = "0.25";
 
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
@@ -184,6 +196,7 @@ export class FixturePayPal implements PayPalClient {
       create_time: this.ts(),
       update_time: this.ts(),
       authorization_id: authorizationId,
+      seller_receivable_breakdown: fixtureFee(cents, input.amount.currency_code),
       links: [
         { href: `fixture://v2/payments/captures/${id}`, rel: "self", method: "GET" },
         { href: `fixture://v2/payments/authorizations/${authorizationId}`, rel: "up", method: "GET" },
@@ -212,5 +225,64 @@ export class FixturePayPal implements PayPalClient {
     a.update_time = this.ts();
     this.remember(opts.requestId, "void", authorizationId);
     return this.getAuthorization(authorizationId);
+  }
+
+  async createPayout(input: CreatePayoutInput): Promise<PayoutBatch> {
+    this.state.payouts ??= {};
+    const dup = Object.values(this.state.payouts).find((b) => b.batch_header.sender_batch_header.sender_batch_id === input.senderBatchId);
+    if (dup) {
+      throw new PayPalApiError(
+        400,
+        {
+          name: "USER_BUSINESS_ERROR",
+          message: "User business error.",
+          debug_id: "fixture",
+          details: [
+            {
+              field: "SENDER_BATCH_ID",
+              issue: "Batch with given sender_batch_id already exists",
+              link: [{ href: `fixture://v1/payments/payouts/${dup.batch_header.payout_batch_id}`, rel: "self", method: "GET" }],
+            },
+          ],
+        },
+        "POST /v1/payments/payouts",
+      );
+    }
+    this.state.seq += 1;
+    const id = `FXPOB${String(this.state.seq).padStart(8, "0")}`;
+    const batch: PayoutBatch & { reads: number } = {
+      batch_header: { payout_batch_id: id, batch_status: "PENDING", sender_batch_header: { sender_batch_id: input.senderBatchId, email_subject: input.emailSubject }, time_created: this.ts() },
+      items: input.items.map((it, i) => ({
+        payout_item_id: `FXPOI${String(this.state.seq).padStart(6, "0")}${i}`,
+        payout_batch_id: id,
+        transaction_status: "PENDING",
+        payout_item_fee: { currency: it.amount.currency, value: FIXTURE_PAYOUT_ITEM_FEE },
+        payout_item: clone(it),
+      })),
+      reads: 0,
+    };
+    this.state.payouts[id] = batch;
+    const { items: _items, reads: _r, ...head } = clone(batch);
+    return head;
+  }
+
+  // First read shows PROCESSING, later reads settle. Sandbox-looking emails
+  // succeed; anything else stays UNCLAIMED like a real payout to an email
+  // with no PayPal account.
+  async getPayoutBatch(batchId: string): Promise<PayoutBatch> {
+    const b = this.state.payouts?.[batchId];
+    if (!b) throw err(404, "GET /v1/payments/payouts/{id}", "INVALID_RESOURCE_ID", "Batch not found.");
+    b.reads += 1;
+    const settled = b.reads > 1;
+    b.batch_header.batch_status = settled ? "SUCCESS" : "PROCESSING";
+    for (const it of b.items ?? []) {
+      if (!settled) continue;
+      const sandbox = /@(personal|business)\.example\.com$/i.test(it.payout_item.receiver) || it.payout_item.recipient_type === "PAYPAL_ID";
+      it.transaction_status = sandbox ? "SUCCESS" : "UNCLAIMED";
+      it.transaction_id ??= `FXTXN${it.payout_item_id.slice(5)}`;
+      it.time_processed ??= this.ts();
+    }
+    const { reads: _r, ...rest } = clone(b);
+    return rest;
   }
 }

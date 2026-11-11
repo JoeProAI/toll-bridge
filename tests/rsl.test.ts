@@ -180,10 +180,11 @@ describe("RSL against pages recorded from the live demo writer site", () => {
     return fetcherFrom(routes);
   };
 
+  const payees: Record<string, string> = { a: "sb-3j1ps53857892@personal.example.com", b: "sb-o9xx453857673@personal.example.com", d: "sb-3j1ps53857892@personal.example.com" };
   it.each(["a", "b", "d"])("%s.html is paid_use at 0.05 USD; ai-train in prohibits doesn't block ai-input; the extra note key is tolerated", async (p) => {
     const r = await checkRsl(`${W}/${p}.html`, { fetcher: live() });
     expect(r).toMatchObject({ status: "paid_use", via: "html-link", royaltyCents: 5, currency: "USD", licenseUrl: `${W}/licenses/writer-${p}.xml` });
-    expect(r.payee).toEqual({ recipient_type: "EMAIL", receiver: "sb-ak43ew42095534@personal.example.com" });
+    expect(r.payee).toEqual({ recipient_type: "EMAIL", receiver: payees[p] });
     expect(rslAllowsRun(r)).toBe(true);
   });
 

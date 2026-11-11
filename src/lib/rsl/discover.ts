@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { assertPublicUrl } from "../tools/source";
+import { httpFetch } from "../tools/source";
 import { evaluateRsl } from "./evaluate";
 import { parseRsl, RslParseError } from "./parse";
 import { RSL_MEDIA_TYPE, type FetchedDoc, type RslFetcher, type RslResult, type RslVia } from "./types";
@@ -11,17 +11,7 @@ export const sha256 = (s: string) => createHash("sha256").update(s, "utf8").dige
 class Unreadable extends Error {}
 
 // Default fetcher: public hosts only, 8 s timeout, 512 KB cap.
-export const httpFetcher: RslFetcher = async (raw, accept) => {
-  const url = await assertPublicUrl(raw);
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), 8000);
-  try {
-    const res = await fetch(url, { signal: controller.signal, redirect: "follow", headers: { "User-Agent": `${UA}/1.0 (+rsl)`, Accept: accept } });
-    return { status: res.status, url: res.url || url.toString(), headers: res.headers, text: (await res.text()).slice(0, 512_000) };
-  } finally {
-    clearTimeout(t);
-  }
-};
+export const httpFetcher: RslFetcher = httpFetch;
 
 // Bot walls and challenges mean we couldn't read the terms, not that there are none.
 export function looksBlocked(d: FetchedDoc): string | null {

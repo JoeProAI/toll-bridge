@@ -36,6 +36,7 @@ export interface Capture {
   create_time?: string;
   update_time?: string;
   status_details?: { reason?: string };
+  seller_receivable_breakdown?: { gross_amount?: Money; paypal_fee?: Money; net_amount?: Money };
   links?: Link[];
 }
 
@@ -65,5 +66,45 @@ export interface PayPalErrorBody {
   name?: string;
   message?: string;
   debug_id?: string;
-  details?: { issue?: string; description?: string; field?: string }[];
+  details?: { issue?: string; description?: string; field?: string; link?: Link[] }[];
+}
+
+// Payouts API v1 (/v1/payments/payouts). Amounts use { value, currency }.
+export interface PayoutMoney {
+  value: string;
+  currency: string;
+}
+
+export interface PayoutItemInput {
+  recipient_type: "EMAIL" | "PAYPAL_ID";
+  receiver: string;
+  amount: PayoutMoney;
+  sender_item_id: string;
+  note?: string;
+}
+
+export type PayoutBatchStatus = "PENDING" | "PROCESSING" | "SUCCESS" | "DENIED" | "CANCELED";
+export type PayoutItemStatus = "SUCCESS" | "FAILED" | "PENDING" | "UNCLAIMED" | "RETURNED" | "ONHOLD" | "BLOCKED" | "REFUNDED" | "REVERSED";
+
+export interface PayoutItem {
+  payout_item_id: string;
+  transaction_id?: string;
+  transaction_status?: PayoutItemStatus;
+  payout_item_fee?: PayoutMoney;
+  payout_batch_id: string;
+  payout_item: PayoutItemInput;
+  time_processed?: string;
+  errors?: { name?: string; message?: string };
+}
+
+export interface PayoutBatch {
+  batch_header: {
+    payout_batch_id: string;
+    batch_status: PayoutBatchStatus;
+    sender_batch_header: { sender_batch_id: string; email_subject?: string };
+    amount?: PayoutMoney;
+    fees?: PayoutMoney;
+    time_created?: string;
+  };
+  items?: PayoutItem[];
 }

@@ -1,4 +1,4 @@
-import type { Authorization, Capture, Money, Order, PayPalErrorBody } from "./types";
+import type { Authorization, Capture, Money, Order, PayoutBatch, PayoutItemInput, PayPalErrorBody } from "./types";
 
 export interface CreateOrderInput {
   amount: Money;
@@ -27,6 +27,12 @@ export interface CardSource {
   name: string;
 }
 
+export interface CreatePayoutInput {
+  senderBatchId: string;
+  emailSubject: string;
+  items: PayoutItemInput[];
+}
+
 export interface PayPalClient {
   readonly mode: "live-sandbox" | "fixtures";
   createOrder(input: CreateOrderInput): Promise<Order>;
@@ -36,6 +42,17 @@ export interface PayPalClient {
   captureAuthorization(authorizationId: string, input: CaptureInput): Promise<Capture>;
   getCapture(captureId: string): Promise<Capture>;
   voidAuthorization(authorizationId: string, opts: { requestId: string }): Promise<Authorization | null>;
+  createPayout(input: CreatePayoutInput): Promise<PayoutBatch>;
+  getPayoutBatch(batchId: string): Promise<PayoutBatch>;
+}
+
+// PayPal answers a reused sender_batch_id with 400 USER_BUSINESS_ERROR and a
+// link to the batch that already exists. We use that to make retries safe.
+export function existingPayoutBatchId(e: unknown): string | null {
+  if (!(e instanceof PayPalApiError) || e.status !== 400) return null;
+  const d = e.body.details?.find((x) => /sender_batch_id/i.test(x.field ?? "") && /already exists/i.test(x.issue ?? ""));
+  const href = d?.link?.find((l) => l.rel === "self")?.href;
+  return href?.match(/\/v1\/payments\/payouts\/([A-Z0-9]+)/)?.[1] ?? null;
 }
 
 export class PayPalApiError extends Error {
