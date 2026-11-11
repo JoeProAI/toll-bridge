@@ -30,6 +30,17 @@ export function htmlToText(html: string): string {
     .trim();
 }
 
+// Throws unless the URL is http(s) and resolves to a public address.
+export async function assertPublicUrl(raw: string): Promise<URL> {
+  const url = new URL(raw);
+  if (!["http:", "https:"].includes(url.protocol)) throw new SourceError("only http and https links");
+  const { address } = await lookup(url.hostname).catch(() => {
+    throw new SourceError(`can't resolve ${url.hostname}`);
+  });
+  if (privateAddress(address)) throw new SourceError("that link points at a private network");
+  return url;
+}
+
 export function isUrl(s: string): boolean {
   return /^https?:\/\/\S+$/i.test(s.trim());
 }
@@ -39,12 +50,7 @@ export function isUrl(s: string): boolean {
 export async function resolveSource(input: string): Promise<{ text: string; url?: string }> {
   const trimmed = input.trim();
   if (!isUrl(trimmed)) return { text: trimmed.slice(0, MAX_INPUT_CHARS) };
-  const url = new URL(trimmed);
-  if (!["http:", "https:"].includes(url.protocol)) throw new SourceError("only http and https links");
-  const { address } = await lookup(url.hostname).catch(() => {
-    throw new SourceError(`can't resolve ${url.hostname}`);
-  });
-  if (privateAddress(address)) throw new SourceError("that link points at a private network");
+  const url = await assertPublicUrl(trimmed);
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), 8000);
   try {
