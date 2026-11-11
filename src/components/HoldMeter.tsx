@@ -42,6 +42,13 @@ export function HoldMeter({ heldCents, priceCents, capturedCents, closed, voided
 
   return (
     <figure className={`meter ${closed ? "is-closed" : ""}`} aria-label={label} role="img">
+      <div className="note-top">
+        <span className="fig-k">PayPal hold · Orders v2 AUTHORIZE</span>
+      </div>
+      <div className="note-amt">
+        <small>$</small>
+        {money(heldCents)}
+      </div>
       <div className="meter-figures">
         <Fig k="Held" v={money(heldCents)} />
         <Fig k="Captured" v={money(capturedCents)} tone="plum" />
