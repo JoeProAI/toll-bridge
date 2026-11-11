@@ -14,7 +14,10 @@
     "proof:live": "tsx scripts/live-proof.mts",
     "rsl:check": "tsx scripts/rsl-check.mts",
     "verify-receipt": "tsx scripts/verify-receipt.mts",
-    "judge": "tsx scripts/judge.mts"
+    "judge": "tsx scripts/judge.mts",
+    "bench": "tsx scripts/bench.mts",
+    "bench:live": "tsx scripts/bench.mts --live",
+    "bench:corpus": "tsx scripts/bench-corpus.mts"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.4.0",
