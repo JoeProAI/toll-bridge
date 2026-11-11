@@ -51,7 +51,8 @@ export function workersAiConfig() {
     accountId: env("CLOUDFLARE_ACCOUNT_ID") ?? "",
     token: env("CLOUDFLARE_AI_API_TOKEN") ?? "",
     generatorModel: env("WRING_MODEL") ?? "@cf/meta/llama-3.1-8b-instruct-fast",
-    judgeModel: env("JUDGE_MODEL") ?? "@cf/meta/llama-3.1-8b-instruct-fast",
+    // Judge is a different model family from the generator (Mistral vs Meta Llama).
+    judgeModel: env("JUDGE_MODEL") ?? "@cf/mistralai/mistral-small-3.1-24b-instruct",
   };
 }
 

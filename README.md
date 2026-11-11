@@ -20,7 +20,7 @@ Every captured cent has a receipt with its PayPal capture ID, read back from Pay
 
 ## The paid tool: `wring`
 
-Long messy text or a URL in. A brief out: a title, a summary, and 3 to 8 claims, each with an exact quote from the source and its character span. It runs on Cloudflare Workers AI (`@cf/meta/llama-3.1-8b-instruct-fast`).
+Long messy text or a URL in. A brief out: a title, a summary, and 3 to 8 claims, each with an exact quote from the source and its character span. It runs on Cloudflare Workers AI: Meta `@cf/meta/llama-3.1-8b-instruct-fast` writes the brief, and a judge from a different family, Mistral `@cf/mistralai/mistral-small-3.1-24b-instruct`, scores it.
 
 The verifier is separate from the generator and is built to say no:
 
