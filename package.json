@@ -13,7 +13,8 @@
     "proof": "tsx scripts/proof.mts",
     "proof:live": "tsx scripts/live-proof.mts",
     "rsl:check": "tsx scripts/rsl-check.mts",
-    "verify-receipt": "tsx scripts/verify-receipt.mts"
+    "verify-receipt": "tsx scripts/verify-receipt.mts",
+    "judge": "tsx scripts/judge.mts"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.4.0",
