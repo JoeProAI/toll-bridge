@@ -334,7 +334,9 @@ main > .hero .btn-plum, .hero .btn-plum { --bg: var(--tn-gold-500); --fg: var(--
 .receipt::before { top: -11px; background: radial-gradient(circle at 8px 0, transparent 7px, #fff 7.5px) 0 0 / 16px 12px repeat-x; }
 .receipt::after { bottom: -11px; background: radial-gradient(circle at 8px 12px, transparent 7px, #fff 7.5px) 0 0 / 16px 12px repeat-x; }
 .receipt-head { position: relative; width: 100%; padding-bottom: 16px; border-bottom: 2px solid var(--tn-ink); }
-.receipt-head .h-big { margin: 10px 0 0; }
+.receipt-head .h-big { margin: 10px 0 0; overflow-wrap: anywhere; }
+.receipt { width: 100%; min-width: 0; }
+.receipt .lede { color: var(--tn-ink-2); }
 .receipt-head .stamp { position: absolute; right: 0; top: 0; font-size: 20px; }
 .receipt-rows { width: 100%; margin: 0; display: grid; }
 .receipt-rows .row { display: grid; grid-template-columns: 170px minmax(0,1fr); gap: 12px; padding: 10px 0; border-bottom: 1px dotted var(--tn-ink-2); font-size: 15px; }
