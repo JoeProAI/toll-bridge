@@ -1,0 +1,73 @@
+/* Writers demo site, "Toll Note" kin. Self-contained: paste into the <style>
+   block of each page in JoeProAI/toll-bridge-writers. */
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400&display=block");
+:root {
+  --green: #0B3B2D; --green-2: #11523F; --green-line: #1A6B52; --green-mute: #A9D3C0;
+  --gold: #F2B33D; --gold-bg: #FFF1CC; --gold-ink: #6E4700;
+  --ink: #0A231C; --ink-2: #44605A; --rule: #C9DDD3; --row: #F2F7F4;
+  --paid: #0A7046; --paid-bg: #DCF2E5; --refused: #B42318; --refused-bg: #FDE8E5;
+  --link: #2A3BAE;
+}
+* { box-sizing: border-box; }
+html { overflow-x: clip; }
+body { margin: 0; background: #fff; color: var(--ink); font: 18px/1.65 "Source Serif 4", Georgia, serif; -webkit-font-smoothing: antialiased; }
+a { color: var(--link); text-underline-offset: 3px; text-decoration-thickness: 1.5px; }
+a:focus-visible { outline: 3px solid var(--link); outline-offset: 2px; }
+.demo { font: 600 13px/1.4 "IBM Plex Mono", monospace; letter-spacing: .03em; background: var(--gold); color: var(--ink); padding: 10px 16px; text-align: center; border-bottom: 3px solid var(--ink); }
+.demo a { color: var(--ink); font-weight: 700; }
+.mast { background: var(--green); color: #fff; padding: 28px 0 0; background-image: url("assets/waves.svg"); }
+.mast-in { max-width: 980px; margin: 0 auto; padding: 0 16px; }
+.mast-k { font: 600 12px/1 "IBM Plex Mono", monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin: 0; }
+.mast h1 { font: 900 clamp(34px, 6vw, 64px)/0.95 "Archivo", sans-serif; font-variation-settings: "wdth" 125; letter-spacing: -0.02em; margin: 12px 0 14px; }
+.mast p { color: #E3F1EA; max-width: 40em; margin: 0; font-size: 17px; }
+.truss { height: 18px; margin-top: 26px; background: url("assets/truss.svg") repeat-x left center / 54px 18px; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 32px 16px 56px; }
+.board { list-style: none; margin: 0; padding: 0; border-top: 2px solid var(--ink); }
+.row { display: grid; grid-template-columns: 64px minmax(0,1fr) 210px; gap: 18px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--rule); }
+.tile { width: 64px; height: 64px; display: grid; place-items: center; background: var(--green); color: var(--gold); font: 900 34px/1 "Archivo", sans-serif; font-variation-settings: "wdth" 125; border-radius: 3px; }
+.row.no .tile { background: var(--refused); color: #fff; }
+.row.warn .tile { background: var(--gold); color: var(--ink); }
+.row h2 { font: 800 21px/1.2 "Archivo", sans-serif; font-variation-settings: "wdth" 105; margin: 0 0 4px; }
+.row h2 a { color: var(--ink); text-decoration: none; }
+.row h2 a:hover { text-decoration: underline; }
+.by { font: 500 13px/1.4 "IBM Plex Mono", monospace; color: var(--ink-2); }
+.terms { text-align: right; display: grid; gap: 6px; justify-items: end; }
+.price { font: 900 26px/1 "Archivo", sans-serif; font-variation-settings: "wdth" 115; font-variant-numeric: tabular-nums; }
+.price small { font: 500 12px "IBM Plex Mono", monospace; color: var(--ink-2); }
+.st { display: inline-flex; align-items: center; gap: 6px; font: 700 11.5px/1 "IBM Plex Mono", monospace; letter-spacing: .06em; text-transform: uppercase; padding: 5px 8px; border: 1.5px solid currentColor; border-radius: 2px; white-space: nowrap; }
+.st-paid { color: var(--paid); background: var(--paid-bg); }
+.st-no { color: var(--refused); background: var(--refused-bg); }
+.st-warn { color: var(--gold-ink); background: var(--gold-bg); }
+.lic-link { font: 500 13px "IBM Plex Mono", monospace; }
+h3.sec { font: 900 28px/1 "Archivo", sans-serif; font-variation-settings: "wdth" 120; margin: 44px 0 12px; }
+code, pre { font-family: "IBM Plex Mono", monospace; font-size: .85em; }
+pre { background: var(--green); color: #E3F1EA; padding: 16px; border-radius: 3px; overflow-x: auto; font-size: 13px; line-height: 1.6; }
+pre .k { color: var(--gold); }
+.fine { font: 500 14px/1.6 "IBM Plex Mono", monospace; color: var(--ink-2); border-top: 1px solid var(--rule); padding-top: 14px; margin-top: 32px; }
+
+/* article */
+.art { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 48px; align-items: start; }
+.art h1 { font: 900 clamp(32px, 5vw, 52px)/1.02 "Archivo", sans-serif; font-variation-settings: "wdth" 112; letter-spacing: -0.015em; margin: 0 0 12px; text-wrap: balance; }
+.art .byl { font: 500 14px "IBM Plex Mono", monospace; color: var(--ink-2); margin: 0 0 24px; padding-bottom: 16px; border-bottom: 2px solid var(--ink); }
+.art p { margin: 0 0 1.1em; }
+.ticket { position: sticky; top: 16px; border: 2px solid var(--green); border-radius: 4px; background: #fff; }
+.ticket-h { background: var(--green); color: #fff; padding: 12px 14px; }
+.ticket-h .mast-k { font-size: 11px; }
+.ticket-h b { display: block; font: 900 40px/1 "Archivo", sans-serif; font-variation-settings: "wdth" 125; margin-top: 8px; color: var(--gold); }
+.ticket-h span { font: 500 12px "IBM Plex Mono", monospace; color: var(--green-mute); }
+.ticket dl { margin: 0; padding: 4px 14px 10px; border-top: 2px dashed var(--green); }
+.ticket dl div { display: grid; gap: 2px; padding: 9px 0; border-bottom: 1px dotted var(--rule); }
+.ticket dt { font: 600 11px/1 "IBM Plex Mono", monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
+.ticket dd { margin: 0; font: 500 14px/1.4 "IBM Plex Mono", monospace; word-break: break-word; }
+.ticket .ft { padding: 10px 14px 14px; font: 500 12px/1.5 "IBM Plex Mono", monospace; color: var(--ink-2); }
+.callout { border-left: 4px solid var(--gold); background: var(--gold-bg); padding: 12px 16px; font: 500 15px/1.55 "IBM Plex Mono", monospace; color: var(--ink); margin: 0 0 1.2em; }
+.callout b { color: var(--gold-ink); }
+@media (max-width: 760px) {
+  .art { grid-template-columns: minmax(0,1fr); gap: 28px; }
+  .ticket { position: static; }
+  .row { grid-template-columns: 48px minmax(0,1fr); gap: 12px; }
+  .tile { width: 48px; height: 48px; font-size: 26px; }
+  .terms { grid-column: 2; text-align: left; justify-items: start; grid-auto-flow: column; justify-content: start; align-items: center; gap: 10px; }
+  body { font-size: 17px; }
+}
+

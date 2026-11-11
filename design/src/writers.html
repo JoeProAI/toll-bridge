@@ -1,0 +1,20 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Toll Bridge demo writers</title><link rel="stylesheet" href="writers.css"></head><body><div class="demo">DEMO WRITER &middot; PayPal sandbox only &middot; fictional writer, fake data &middot; part of the <a href="https://github.com/JoeProAI/toll-bridge">Toll Bridge</a> hackathon demo</div>
+<header class="mast"><div class="mast-in"><p class="mast-k">Four fictional writers &middot; RSL 1.0 licenses</p><h1>Toll Bridge demo writers</h1>
+<p>Four fictional writers with real <a href="https://rslstandard.org/rsl" style="color:#FFD781">RSL 1.0</a> license files. Toll Bridge reads these before an AI agent may use a page, and pays the writer per verified quote through PayPal Payouts (sandbox).</p><div class="truss" aria-hidden="true"></div></div></header>
+<main class="wrap">
+<ol class="board">
+ <li class="row"><span class="tile" aria-hidden="true">A</span><div><h2><a href="writer-a.html">How small libraries stretch a book budget</a></h2><div class="by">Mara Quill &middot; fictional demo writer &middot; <a class="lic-link" href="#">license</a></div></div><div class="terms"><span class="price">$0.05 <small>per use</small></span><span class="st st-paid">Pays per use</span></div></li>
+ <li class="row"><span class="tile" aria-hidden="true">B</span><div><h2><a href="#">Why the night bus came back</a></h2><div class="by">Theo Brandt &middot; fictional demo writer &middot; <a class="lic-link" href="#">license</a></div></div><div class="terms"><span class="price">$0.05 <small>per use</small></span><span class="st st-paid">Pays per use</span></div></li>
+ <li class="row no"><span class="tile" aria-hidden="true">C</span><div><h2><a href="#">Notes on keeping sourdough starter alive</a></h2><div class="by">June Okonkwo &middot; fictional demo writer &middot; <a class="lic-link" href="#">license</a></div></div><div class="terms"><span class="price">$0.00</span><span class="st st-no">Prohibits all AI use</span></div></li>
+ <li class="row warn"><span class="tile" aria-hidden="true">D</span><div><h2><a href="writer-d.html">Review: the CloudNest smart thermostat</a></h2><div class="by">Pip Larkspur &middot; fictional demo writer &middot; <a class="lic-link" href="#">license</a></div></div><div class="terms"><span class="price">$0.05 <small>per use</small></span><span class="st st-warn">Hides a prompt injection</span></div></li>
+</ol>
+<h3 class="sec">The payee block</h3>
+<p>RSL lets a license name payment methods with <code>&lt;accepts type="..."&gt;</code>, and says other payment systems may define their own media types. <code>application/vnd.tollbridge.paypal-payout+json</code> is Toll Bridge&rsquo;s own proposal. It is not part of RSL or PayPal.</p>
+<pre><span class="k">&lt;payment type="use"&gt;</span>
+  &lt;amount currency="USD"&gt;0.05&lt;/amount&gt;
+  <span class="k">&lt;accepts type="application/vnd.tollbridge.paypal-payout+json"&gt;</span>
+    {"recipient_type":"EMAIL","receiver":"sb-...@personal.example.com"}
+  &lt;/accepts&gt;
+&lt;/payment&gt;</pre>
+<p class="fine">All names, numbers, places and products on these pages are made up. Payee emails are PayPal <strong>sandbox</strong> accounts. No real money moves.</p>
+</main></body></html>

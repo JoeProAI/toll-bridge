@@ -1,0 +1,87 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How small libraries stretch a book budget | Toll Bridge demo writers</title>
+<link rel="license" type="application/rsl+xml" href="https://joeproai.github.io/toll-bridge-writers/licenses/writer-a.xml">
+<style>/* Toll Bridge demo writers: "Toll Note" kin. Drop-in for the <style> block of
+   index.html and a.html to d.html in JoeProAI/toll-bridge-writers.
+   Article pages need NO text changes: htmlToText() in the app strips <style>
+   and tags, so quote spans stay identical. Only add the data-* attributes on
+   .lic described in WRITERS-SPEC.md. */
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400&display=swap");
+:root { --green:#0B3B2D; --green-2:#11523F; --mute:#A9D3C0; --gold:#F2B33D; --gold-bg:#FFF1CC; --gold-ink:#6E4700; --ink:#0A231C; --ink-2:#44605A; --rule:#C9DDD3; --row:#F2F7F4; --paid:#0A7046; --paid-bg:#DCF2E5; --refused:#B42318; --refused-bg:#FDE8E5; --link:#2A3BAE;
+  --waves: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='480' height='6' viewBox='0 0 480 6' fill='none' stroke='%23165A44' stroke-width='.8'><path d='M0 3 Q30 0 60 3 T120 3 T180 3 T240 3 T300 3 T360 3 T420 3 T480 3'/></svg>");
+  --truss: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='16' viewBox='0 0 48 16' fill='none' stroke='%23F2B33D' stroke-width='2'><path d='M0 1H48M0 15H48M0 15L12 1L24 15L36 1L48 15'/></svg>"); }
+* { box-sizing: border-box; }
+html { overflow-x: clip; }
+body { margin: 0 auto; max-width: 1040px; padding: 0 20px 56px; background: #fff; color: var(--ink); font: 18px/1.65 "Source Serif 4", Georgia, serif; -webkit-font-smoothing: antialiased; }
+a { color: var(--link); text-underline-offset: 3px; text-decoration-thickness: 1.5px; }
+a:focus-visible { outline: 3px solid var(--link); outline-offset: 2px; }
+code, pre { font-family: "IBM Plex Mono", monospace; font-size: .85em; }
+
+/* DEMO band: text unchanged, louder and full-bleed */
+.demo { margin: 0 calc(50% - 50vw) 0; padding: 10px 20px; text-align: center; background: var(--gold); color: var(--ink); border-bottom: 3px solid var(--ink); font: 600 13px/1.45 "IBM Plex Mono", monospace; letter-spacing: .03em; }
+.demo a { color: var(--ink); font-weight: 700; }
+
+h1 { font: 900 clamp(32px, 5vw, 52px)/1.02 "Archivo", sans-serif; font-variation-settings: "wdth" 112; letter-spacing: -.015em; margin: 40px 0 12px; text-wrap: balance; }
+h2 { font: 900 28px/1.05 "Archivo", sans-serif; font-variation-settings: "wdth" 120; margin: 44px 0 12px; }
+/* byline: first p after the title on article pages */
+body:not(.index) h1 + p { font: 500 14px/1.5 "IBM Plex Mono", monospace; color: var(--ink-2); margin: 0 0 24px; padding-bottom: 16px; border-bottom: 2px solid var(--ink); }
+body:not(.index) h1 + p em { font-style: normal; }
+p { margin: 0 0 1.1em; }
+p > strong:first-child { color: var(--gold-ink); }
+/* "Demo note:" paragraphs on c and d */
+p:has(> strong:first-child) { border-left: 4px solid var(--gold); background: var(--gold-bg); padding: 12px 16px; font: 500 15px/1.55 "IBM Plex Mono", monospace; }
+
+/* License ticket, built from the existing .lic div. Price comes from data-*
+   attributes through CSS, so no new text enters the page source. */
+.lic { margin: 32px 0 0; display: flex; flex-direction: column; align-items: flex-start; gap: 0; border: 2px solid var(--green); border-radius: 4px; background: #fff; font: 500 13px/1.5 "IBM Plex Mono", monospace; color: var(--ink-2); padding: 0 14px 14px; white-space: normal; word-break: break-word; }
+.lic::before { order: -2; align-self: stretch; content: "RSL 1.0 LICENSE \00B7  DEMO\A" attr(data-terms); white-space: pre-wrap; margin: 0 -14px; padding: 12px 14px 2px; background: var(--green); color: var(--mute); font: 600 11px/1.6 "IBM Plex Mono", monospace; letter-spacing: .1em; text-transform: uppercase; }
+.lic::after { order: -1; align-self: stretch; content: attr(data-price); margin: 0 -14px 10px; padding: 2px 14px 12px; background: var(--green); color: var(--gold); font: 900 42px/1 "Archivo", sans-serif; font-variation-settings: "wdth" 125; border-bottom: 2px dashed #fff; }
+.lic[data-tone="no"]::before, .lic[data-tone="no"]::after { background: var(--refused); color: #fff; }
+.lic[data-tone="warn"]::before, .lic[data-tone="warn"]::after { background: var(--gold); color: var(--ink); }
+.lic a { font-weight: 600; }
+
+@media (min-width: 860px) {
+  body:not(.index) { display: grid; grid-template-columns: minmax(0, 1fr) 280px; column-gap: 48px; align-content: start; }
+  body:not(.index) > * { grid-column: 1; }
+  body:not(.index) > .demo { grid-column: 1 / -1; }
+  body:not(.index) > .lic { grid-column: 2; grid-row: 2 / span 40; align-self: start; position: sticky; top: 24px; margin-top: 48px; }
+}
+
+/* ===== index only (add class="index" to <body>) ===== */
+.index .mast { margin: 0 calc(50% - 50vw); padding: 28px 20px 0; background: var(--green) var(--waves) 0 0 / 480px 6px; color: #fff; }
+.index .mast > * { max-width: 1000px; margin-left: auto; margin-right: auto; }
+.index .mast h1 { color: #fff; font-size: clamp(34px, 6vw, 64px); font-variation-settings: "wdth" 125; margin: 10px auto 14px; }
+.index .mast p { color: #E3F1EA; font-size: 17px; }
+.index .mast a { color: #FFD781; }
+.index .kick { font: 600 12px/1 "IBM Plex Mono", monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); margin-top: 0; }
+.index .truss { height: 18px; margin-top: 26px; background: var(--truss) repeat-x left center / 54px 18px; }
+.board { list-style: none; margin: 32px 0 0; padding: 0; border-top: 2px solid var(--ink); }
+.board li { display: grid; grid-template-columns: 64px minmax(0,1fr) 210px; gap: 18px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--rule); }
+.tile { width: 64px; height: 64px; display: grid; place-items: center; background: var(--green); color: var(--gold); font: 900 34px/1 "Archivo", sans-serif; font-variation-settings: "wdth" 125; border-radius: 3px; }
+.no .tile { background: var(--refused); color: #fff; } .warn .tile { background: var(--gold); color: var(--ink); }
+.board h3 { font: 800 21px/1.2 "Archivo", sans-serif; font-variation-settings: "wdth" 105; margin: 0 0 4px; }
+.board h3 a { color: var(--ink); text-decoration: none; } .board h3 a:hover { text-decoration: underline; }
+.by { font: 500 13px/1.4 "IBM Plex Mono", monospace; color: var(--ink-2); }
+.terms { text-align: right; display: grid; gap: 6px; justify-items: end; }
+.price { font: 900 26px/1 "Archivo", sans-serif; font-variation-settings: "wdth" 115; font-variant-numeric: tabular-nums; }
+.price small { font: 500 12px "IBM Plex Mono", monospace; color: var(--ink-2); }
+.st { display: inline-flex; align-items: center; font: 700 11.5px/1 "IBM Plex Mono", monospace; letter-spacing: .06em; text-transform: uppercase; padding: 5px 8px; border: 1.5px solid currentColor; border-radius: 2px; white-space: nowrap; }
+.st-paid { color: var(--paid); background: var(--paid-bg); } .st-no { color: var(--refused); background: var(--refused-bg); } .st-warn { color: var(--gold-ink); background: var(--gold-bg); }
+pre { background: var(--green); color: #E3F1EA; padding: 16px; border-radius: 3px; overflow-x: auto; font-size: 13px; line-height: 1.6; }
+pre .k { color: var(--gold); }
+.fine { font: 500 14px/1.6 "IBM Plex Mono", monospace; color: var(--ink-2); border-top: 1px solid var(--rule); padding-top: 14px; margin-top: 32px; }
+@media (max-width: 760px) {
+  body { font-size: 17px; }
+  .board li { grid-template-columns: 48px minmax(0,1fr); gap: 12px; }
+  .tile { width: 48px; height: 48px; font-size: 26px; }
+  .terms { grid-column: 2; justify-items: start; text-align: left; grid-auto-flow: column; justify-content: start; align-items: center; gap: 10px; }
+}
+</style></head><body><div class="demo">DEMO WRITER &middot; PayPal sandbox only &middot; fictional writer, fake data &middot; part of the <a href="https://github.com/JoeProAI/toll-bridge">Toll Bridge</a> hackathon demo</div>
+<h1>How small libraries stretch a book budget</h1><p><em>By Mara Quill (fictional demo writer)</em></p>
+<p>The Alder Creek branch library serves about 9,000 people and had a book budget of $41,000 last year. Its director, Rosa Delgado, said the branch now spends 38 percent of that budget on ebooks and audiobooks, up from 22 percent five years ago.</p>
+<p>Digital titles cost the branch more than print. A popular new novel that costs $28 in hardcover can cost the library $55 for an ebook license that expires after 24 months or 26 checkouts, whichever comes first.</p>
+<p>To make the money go further, the branch joined a regional sharing group with four other libraries in 2023. Members split the cost of high-demand titles and lend print copies through a van that runs twice a week. Delgado said the group cut average hold times on bestsellers from 31 days to 12 days.</p>
+<p>The branch also stopped buying multiple print copies of new releases. It now buys one copy and adds more only when holds pass five per copy.</p>
+<p>Next year the board will vote on whether to raise the materials budget by 6 percent, which would add about $2,500.</p>
+<div class="lic" data-price="$0.05" data-terms="per verified use, USD">License (RSL 1.0): <a href="https://joeproai.github.io/toll-bridge-writers/licenses/writer-a.xml">licenses/writer-a.xml</a></div>
+</body></html>

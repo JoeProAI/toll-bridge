@@ -1,0 +1,69 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Toll Bridge: a PayPal tab for AI agents</title><link rel="stylesheet" href="tokens.css"><link rel="stylesheet" href="toll-note.css"></head><body><a class="skip" href="#main" hidden>Skip to content</a><header class="top"><a class="mark" href="landing.html" aria-label="Toll Bridge home"><svg viewBox="0 0 38 22" aria-hidden="true" fill="none" stroke="#F2B33D" stroke-width="2.2"><path d="M1 20h36M1 20L7.5 6 14 20 20.5 6 27 20 33.5 6 37 13M4 6h33"/></svg><span class="mark-t">TOLL <b>BRIDGE</b></span></a>
+<nav class="nav" aria-label="Main"><a href="#how">How it works</a><a href="#writers">For writers</a><a href="#agents">For agents</a><a class="btn btn-gold btn-sm" href="tab.html">Open a tab</a></nav></header>
+<main id="main">
+<section class="hero">
+  <div class="hero-copy">
+    <p class="caps kick">A PayPal tab for AI agents</p>
+    <h1 class="h-hero">Give your agent a tab, <em>not your card.</em></h1>
+    <p class="lede">Approve one PayPal hold. Your agent pays per answer out of it, and PayPal captures a toll only when the answer passes its quote check. Writers whose pages were quoted get paid through PayPal Payouts. The rest of the hold is voided when the tab closes.</p>
+    <div class="hero-cta"><a class="btn btn-gold btn-big" href="tab.html">Open a $2 tab</a><a class="btn btn-line btn-big" href="#agents">Point an agent at it</a></div>
+    <p class="hero-fine">Sandbox demo. Holds and captures are real PayPal sandbox calls.</p>
+  </div>
+  <div class="hero-meter"><figure class="note" role="img" aria-label="PayPal hold of 2.00 USD. 1.00 captured. Left 1.00.">
+<div class="note-in"><div class="note-top"><span class="caps note-k">PayPal hold &middot; Orders v2 AUTHORIZE</span><span class="sample">Replay</span></div>
+<div class="note-amt"><small>$</small>2.00</div><div class="note-id">AUTH FXAUT000000000002 &middot; ORDER FXORD000000000001</div>
+<div class="figs"><div class="fig"><span class="caps fig-k">Held</span><span class="fig-v">2.00</span></div><div class="fig fig-paid"><span class="caps fig-k">Captured</span><span class="fig-v">1.00</span></div><div class="fig fig-held"><span class="caps fig-k">Left</span><span class="fig-v">1.00</span></div></div>
+<div class="coupons" style="--n:4" aria-hidden="true"><span class="cp cp-paid"><span class="cp-n">TOLL 01</span><span class="cp-v">$0.50</span><span class="cp-s">PAID &middot; FXCAP..0003</span></span><span class="cp cp-paid"><span class="cp-n">TOLL 02</span><span class="cp-v">$0.50</span><span class="cp-s">PAID &middot; FXCAP..0004</span></span><span class="cp"><span class="cp-n">TOLL 03</span><span class="cp-v">$0.50</span><span class="cp-s">HELD</span></span><span class="cp"><span class="cp-n">TOLL 04</span><span class="cp-v">$0.50</span><span class="cp-s">HELD</span></span></div><div class="bounces"><span class="bounce"><b>$0.00</b> not charged &middot; failed quote check</span></div></div><p class="note-cap" style="padding:0 6px 4px"><span><span class="replay-step">5/6</span>Call 3 invents a claim. It bounces. You pay nothing.</span></p></figure></div>
+</section>
+
+<section id="how" class="ledger-band" aria-labelledby="how-h">
+  <div style="max-width:var(--max);margin:0 auto;position:relative">
+  <h2 id="how-h" class="h-section">Three PayPal calls. <span class="hl">You only pay for checked work.</span></h2>
+  <ol class="strip">
+    <li class="tix"><div class="tix-n"><span class="caps">Toll 01</span><span class="caps">Hold</span></div><h3>Hold</h3><p>You approve one budget in PayPal. It&rsquo;s an authorization, so the money is held, not spent.</p><code>Orders v2, intent: AUTHORIZE</code></li>
+    <li class="tix"><div class="tix-n"><span class="caps" style="color:var(--tn-gold-300)">Toll 02</span><span class="caps" style="color:var(--tn-gold-300)">Earn</span></div><h3>Earn</h3><p>Each answer gets a quote, runs, then faces the quote check: schema, exact source quotes, coverage, and a judge. Pass, and PayPal captures that one toll. Fail, and nothing moves.</p><code>capture, final_capture: false</code></li>
+    <li class="tix"><div class="tix-n"><span class="caps">Toll 03</span><span class="caps">Void</span></div><h3>Void</h3><p>Close the tab and the rest of the hold goes back. Every cent captured has a receipt with its PayPal ID.</p><code>authorizations/{id}/void</code></li>
+  </ol>
+  </div>
+</section>
+
+<section id="writers" class="royal" aria-labelledby="w-h">
+  <div>
+    <p class="caps kick">For writers</p>
+    <h2 id="w-h" class="h-section" style="margin-top:16px">Quoted? <span style="color:var(--tn-gold-500)">You get paid.</span></h2>
+    <p class="lede" style="margin-bottom:0">Toll Bridge reads each page&rsquo;s RSL license before an agent may use it. If the license names a per-use price and a PayPal payee, a verified quote sends that royalty through PayPal Payouts. If it says no AI use, the page is refused at $0.00.</p>
+  </div>
+  <div><p style="margin:0 0 10px"><span class="sample">Sample flow &middot; demo writers</span></p>
+  <ol class="flow">
+    <li class="li-paid"><span class="amt">$0.50</span><span class="who"><b>Answer passed the quote check</b>PayPal capture FXCAP000000000003</span><span class="st st-paid">Captured</span></li>
+    <li class="li-pay"><span class="amt">$0.05</span><span class="who"><b>Mara Quill, demo writer A</b>RSL: pays per use, $0.05</span><span class="st st-pending">Payout queued</span></li>
+    <li class="li-ref"><span class="amt">$0.00</span><span class="who"><b>June Okonkwo, demo writer C</b>RSL: prohibits all AI use</span><span class="st st-refused">Refused</span></li>
+  </ol></div>
+</section>
+
+<section id="agents" class="agents" aria-labelledby="agents-h">
+  <h2 id="agents-h" class="h-section">For agents</h2>
+  <div class="agent-cols">
+    <div class="paper panel"><h3 class="h-panel">Plain HTTP</h3><p class="panel-sub" style="margin-top:6px">Ask, get a 402 with a quote, pay with the quote.</p>
+<pre class="code"><span class="k">curl</span> -X POST $HOST/api/tools/wring \
+  -H "authorization: Bearer $TAB" \
+  -d '{"input":"https://example.com/long-page"}'
+<span class="c"># 402 { quote: { price: "0.50" }, quote_token }</span>
+
+<span class="k">curl</span> -X POST $HOST/api/tools/wring \
+  -H "authorization: Bearer $TAB" \
+  -H "x-toll-quote: $QUOTE" \
+  -d '{"input":"https://example.com/long-page"}'
+<span class="c"># 200 { call: { verdict, capture_id }, result }</span></pre></div>
+    <div class="paper panel"><h3 class="h-panel">MCP</h3><p class="panel-sub" style="margin-top:6px">Streamable HTTP. Tools: open, claim, quote, wring, status, close.</p>
+<pre class="code">{
+  <span class="k">"mcpServers"</span>: {
+    "toll-bridge": {
+      "url": "https://&lt;host&gt;/api/mcp"
+    }
+  }
+}</pre><p class="panel-sub" style="margin-top:14px">The human step is approving the hold. Everything after that is the agent&rsquo;s. <a href="tab.html">Open a tab</a> to try it in the browser.</p></div>
+  </div>
+</section>
+</main><footer class="foot"><div class="foot-in"><span><b>PayPal sandbox only.</b> No real money moves.</span><span>Ledger read back from PayPal Orders v2 &middot; <a href="https://github.com/JoeProAI/toll-bridge">Source on GitHub</a></span></div></footer></body></html>
