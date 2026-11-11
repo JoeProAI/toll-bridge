@@ -412,7 +412,7 @@ function Summary({ view, onNew }: { view: TabView; onNew: () => void }) {
           </tr>
           {view.final_capture?.paypal_fee && (
             <tr>
-              <th scope="row">PayPal fee on the capture (sandbox reported)</th>
+              <th scope="row">PayPal fee on the capture ({t.mode === "fixtures" ? "fixtures" : "sandbox reported"})</th>
               <td>{view.final_capture.paypal_fee}</td>
             </tr>
           )}

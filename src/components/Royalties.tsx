@@ -60,7 +60,7 @@ function totalsRows(view: TabView): Partial<RoyaltyRow>[] {
     ["Held", t.held],
     ["Captured", t.captured],
     [view.final_capture ? "Released" : "Voided", released],
-    [`Fees (${view.fees?.source ?? "PayPal"})`, view.fees?.total ?? "0.00"],
+    [view.tab.mode === "fixtures" ? "PayPal fees (fixtures)" : "PayPal fees (sandbox reported)", view.fees?.total ?? "0.00"],
     ["Royalties accrued", t.royalties_earned ?? "0.00"],
     ["Royalties paid", paid],
   ].map(([k, v]) => ({ id: `total-${k}`, quote: k, royalty: v }));
