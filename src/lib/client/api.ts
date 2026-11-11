@@ -20,6 +20,7 @@ export interface CallView {
   tool_fee?: string;
   royalty?: { amount: string; earned: boolean; payee: { recipient_type: string; receiver: string } } | null;
   rsl?: { status: string; reason?: string } | null;
+  verified_spans?: { start: number; end: number; quote: string }[];
 }
 
 export interface PayoutView {
@@ -50,6 +51,7 @@ export interface TabSummary {
   accrued?: string;
   refused?: number;
   settlement?: "tab" | "per-call";
+  royalties_earned?: string;
   expires_at?: string;
 }
 
@@ -83,6 +85,8 @@ export interface AppConfig {
   paypal_client_id: string | null;
   model_mode: "fake" | "workers-ai";
   models: { generator: string; judge: string };
+  model_families?: { generator: string; judge: string };
+  policy_hash?: string;
   prices: Record<string, string>;
   budgets: string[];
   max_calls_per_tab: number;
@@ -111,6 +115,8 @@ export interface WringResult {
 
 export interface QuoteResponse {
   quote: { quote_id: string; price: { value: string }; remaining: { value: string }; expires_at: string; terms: string };
+  lines?: { kind: "tool_fee" | "royalty"; amount: string; payee?: { receiver: string } }[];
+  rsl?: { status: string; reason: string; via?: string } | null;
   quote_token: string;
 }
 

@@ -8,6 +8,7 @@ import { PayPalApprove } from "./PayPalApprove";
 import { ApiError, api, post, requestQuote, type AppConfig, type Brief, type CallView, type TabView, type WringResult } from "@/lib/client/api";
 
 const Ledger = dynamic(() => import("./Ledger"), { ssr: false, loading: () => <div className="skeleton skeleton-grid" aria-label="Loading ledger" /> });
+const Royalties = dynamic(() => import("./Royalties"), { ssr: false, loading: () => <div className="skeleton skeleton-grid" aria-label="Loading royalties" /> });
 
 type Phase = "loading" | "setup" | "open" | "closed" | "fatal";
 type Stage = "quote" | "run" | null;
@@ -34,6 +35,7 @@ export function TabApp() {
   const [pick, setPick] = useState("seawall");
   const [custom, setCustom] = useState("");
   const [closing, setClosing] = useState(false);
+  const [grid, setGrid] = useState<"ledger" | "royalties">("ledger");
   const lineId = useRef(0);
 
   const say = useCallback((tone: LogLine["tone"], text: string) => {
@@ -79,6 +81,8 @@ export function TabApp() {
       try {
         const q = await requestQuote(input);
         say("in", `402 Payment Required. wring costs ${q.quote.price.value} USD, ${q.quote.remaining.value} left on the hold. Quote ${q.quote.quote_id}.`);
+        if (q.rsl) say("note", `RSL ${q.rsl.status}${q.rsl.via ? ` (found via ${q.rsl.via})` : ""}: ${q.rsl.reason}`);
+        for (const l of q.lines ?? []) if (l.kind === "royalty") say("note", `Royalty line: ${l.amount} USD to ${l.payee?.receiver}, owed only if a quote from this page passes the span check.`);
         setStage("run");
         say("out", `POST /api/tools/wring  X-Toll-Quote: ${q.quote.quote_id}`);
         say("note", `wring runs on ${config.models.generator}, then the verifier checks it.`);
@@ -242,8 +246,15 @@ export function TabApp() {
 
           <section className="panel panel-ledger" aria-labelledby="ledger-h">
             <div className="panel-head">
-              <h2 id="ledger-h" className="h-panel">Ledger</h2>
-              <span className="panel-sub">Every call, its verdict, and the PayPal capture it earned. Read back from PayPal.</span>
+              <h2 id="ledger-h" className="h-panel">{grid === "ledger" ? "Ledger" : "Royalties"}</h2>
+              <span className="panel-sub">{grid === "ledger" ? "Every call, its verdict, and the PayPal capture it earned. Read back from PayPal." : "What each quoted writer earned, and the PayPal payout that paid them."}</span>
+            </div>
+            <div className="actions" role="tablist" aria-label="Ledger view">
+              {(["ledger", "royalties"] as const).map((g) => (
+                <button key={g} type="button" role="tab" aria-selected={grid === g} className={`btn ${grid === g ? "btn-plum" : "btn-ghost"}`} onClick={() => setGrid(g)}>
+                  {g === "ledger" ? "Calls" : "Royalties"}
+                </button>
+              ))}
             </div>
             {view.calls.length === 0 ? (
               <div className="empty">
@@ -251,7 +262,7 @@ export function TabApp() {
                 <p>Send one and it lands here with its verdict and PayPal capture ID.</p>
               </div>
             ) : (
-              <Ledger calls={view.calls} />
+              grid === "ledger" ? <Ledger calls={view.calls} /> : <Royalties view={view} />
             )}
           </section>
         </>
@@ -266,7 +277,14 @@ function ModeBar({ config, view }: { config: AppConfig; view: TabView | null }) 
       <span className={`chip ${config.paypal_mode === "live-sandbox" ? "chip-live" : "chip-fx"}`}>
         {config.paypal_mode === "live-sandbox" ? "PayPal sandbox: live" : "PayPal: fixtures"}
       </span>
-      <span className="chip">{config.model_mode === "workers-ai" ? `Workers AI: ${config.models.generator.replace("@cf/", "")}` : "Model: deterministic fake"}</span>
+      {config.model_mode === "workers-ai" ? (
+        <>
+          <span className="chip">Writer model: {config.models.generator.replace("@cf/", "")}</span>
+          <span className="chip">Judge model: {config.models.judge.replace("@cf/", "")}</span>
+        </>
+      ) : (
+        <span className="chip chip-fx">Model: deterministic fake, not a real AI. Verdicts are scripted for testing.</span>
+      )}
       {view && <span className="chip">Tab {view.tab.tab_id}</span>}
     </div>
   );

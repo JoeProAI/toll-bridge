@@ -8,7 +8,7 @@ import type { CallView } from "@/lib/client/api";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-const theme = themeQuartz.withParams({
+export const theme = themeQuartz.withParams({
   fontFamily: "var(--font-body), sans-serif",
   headerFontFamily: "var(--font-display), sans-serif",
   headerFontWeight: 800,
