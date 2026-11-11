@@ -7,7 +7,7 @@
       <prohibits type="usage">ai-train</prohibits>
       <payment type="use">
         <amount currency="USD">0.05</amount>
-        <accepts type="application/vnd.tollbridge.paypal-payout+json"><![CDATA[{"recipient_type":"EMAIL","receiver":"sb-ak43ew42095534@personal.example.com","note":"Toll Bridge proposal media type, not part of RSL or PayPal. Sandbox only. TEMPORARY: payee is the sandbox buyer account standing in until the demo writer sandbox accounts exist."}]]></accepts>
+        <accepts type="application/vnd.tollbridge.paypal-payout+json"><![CDATA[{"recipient_type":"EMAIL","receiver":"sb-3j1ps53857892@personal.example.com","note":"Toll Bridge proposal media type, not part of RSL or PayPal. Sandbox only."}]]></accepts>
       </payment>
     </license>
     <copyright type="person">Mara Quill (fictional demo writer)</copyright>

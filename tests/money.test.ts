@@ -11,7 +11,8 @@ import { makeDeps, openedTab, PASS_TEXT } from "./helpers";
 
 const W = "https://joeproai.github.io/toll-bridge-writers";
 const fx = (f: string) => readFileSync(join(__dirname, "fixtures/rsl/live", f), "utf8");
-const BUYER = { recipient_type: "EMAIL", receiver: "sb-ak43ew42095534@personal.example.com" };
+const WRITER_A = { recipient_type: "EMAIL", receiver: "sb-3j1ps53857892@personal.example.com" };
+const WRITER_B = { recipient_type: "EMAIL", receiver: "sb-o9xx453857673@personal.example.com" };
 
 // The live writer site, recorded. Pages and their licenses, no network.
 const writers: RslFetcher = async (url): Promise<FetchedDoc> => {
@@ -42,7 +43,7 @@ describe("RSL quote and call", () => {
     expect(q.price.value).toBe("0.55");
     expect(q.lines).toEqual([
       { kind: "tool_fee", tool: "wring", amount: "0.50" },
-      expect.objectContaining({ kind: "royalty", amount: "0.05", payee: BUYER }),
+      expect.objectContaining({ kind: "royalty", amount: "0.05", payee: WRITER_A }),
     ]);
     expect(q.rsl?.status).toBe("paid_use");
   });
@@ -78,7 +79,7 @@ describe("RSL quote and call", () => {
     expect(r.record.spans!.length).toBeGreaterThan(0);
     for (const s of r.record.spans!) expect(r.sourceText.slice(s.start, s.end)).toBe(s.quote);
     const signed = signReceipt(receiptPayload(r.tab, r.record), "k".repeat(32));
-    expect(signed.receipt).toMatchObject({ input_url: `${W}/a.html`, royalty: "0.05", tool_fee: "0.50", payee: BUYER, rsl_status: "paid_use", generator_model: "fake/deterministic" });
+    expect(signed.receipt).toMatchObject({ input_url: `${W}/a.html`, royalty: "0.05", tool_fee: "0.50", payee: WRITER_A, rsl_status: "paid_use", generator_model: "fake/deterministic" });
     expect(signed.receipt.policy_hash).toMatch(/^[0-9a-f]{64}$/);
   });
 });
@@ -104,7 +105,7 @@ describe("tab settlement", () => {
     expect(closed.truth).toMatchObject({ capturedCents: 110, authorizationStatus: "CAPTURED" });
     expect(closed.tab.voidedCents).toBe(890);
     expect(closed.tab.finalCapture).toMatchObject({ cents: 110, feeCents: 52 });
-    expect(closed.tab.payout).toMatchObject({ ledger: "per-tab", items: [{ payee: BUYER, cents: 10 }] });
+    expect(closed.tab.payout).toMatchObject({ ledger: "per-tab", items: [{ payee: WRITER_A, cents: 5 }, { payee: WRITER_B, cents: 5 }] });
     expect(closed.tab.payout!.batchId).toMatch(/^FXPOB/);
   });
 
@@ -176,10 +177,10 @@ describe("royalty ledger and Payouts", () => {
     expect(c1.tab.payout).toMatchObject({ ledger: "kv", items: [], accruing: [{ unpaidCents: 5, thresholdCents: 10 }] });
 
     let t2 = await openedTab(d, 1000);
-    t2 = (await run(d, t2, `${W}/b.html`)).tab;
+    t2 = (await run(d, t2, `${W}/a.html`)).tab;
     const c2 = await closeTab(d, t2);
-    expect(c2.tab.payout!.items).toEqual([expect.objectContaining({ cents: 10, payee: BUYER })]);
-    const led = await payeeLedger(kv, payeeKey(BUYER as never));
+    expect(c2.tab.payout!.items).toEqual([expect.objectContaining({ cents: 10, payee: WRITER_A })]);
+    const led = await payeeLedger(kv, payeeKey(WRITER_A as never));
     expect(led).toMatchObject({ accruedCents: 10, paidCents: 10 });
     expect(led.earnings).toHaveLength(2);
     expect(led.earnings[0].sentences.length).toBeGreaterThan(0);
@@ -195,7 +196,7 @@ describe("royalty ledger and Payouts", () => {
     const retry = await settleRoyalties(royaltyDeps(d), closed.tab);
     expect(retry!.batchId).toBe(closed.tab.payout!.batchId);
     expect(Object.keys(d.paypal.state.payouts!)).toHaveLength(1);
-    expect((await payeeLedger(kv, payeeKey(BUYER as never))).paidCents).toBe(5);
+    expect((await payeeLedger(kv, payeeKey(WRITER_A as never))).paidCents).toBe(5);
   });
 
   it("recovers the batch id when PayPal says the sender_batch_id already exists", async () => {
