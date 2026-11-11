@@ -1,0 +1,16 @@
+<rsl:rsl xmlns:rsl="https://rslstandard.org/rsl">
+  <rsl:content url="/">
+    <rsl:license><rsl:permits type="usage">ai-all</rsl:permits><rsl:payment type="free"/></rsl:license>
+  </rsl:content>
+  <rsl:content url="/premium/*">
+    <rsl:license>
+      <rsl:permits type="usage">ai-input</rsl:permits>
+      <rsl:payment type="use"><rsl:amount currency="USD">0.015</rsl:amount>
+        <rsl:accepts type="application/vnd.tollbridge.paypal-payout+json">{"recipient_type":"PAYPAL_ID","receiver":"ABCD1234EFGH5"}</rsl:accepts>
+      </rsl:payment>
+    </rsl:license>
+  </rsl:content>
+  <rsl:content url="/premium/secret$">
+    <rsl:license><rsl:permits type="usage">ai-input</rsl:permits><rsl:prohibits type="usage">ai-all</rsl:prohibits></rsl:license>
+  </rsl:content>
+</rsl:rsl>
