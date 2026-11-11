@@ -1,0 +1,10 @@
+{
+  "id": "unreadable-http-429",
+  "kind": "unreadable",
+  "expect": "refuse",
+  "page_url": "https://bench.example/http-429.html",
+  "fetch": {
+    "status": 429,
+    "text": "<html><body><h1>Too Many Requests</h1></body></html>"
+  }
+}

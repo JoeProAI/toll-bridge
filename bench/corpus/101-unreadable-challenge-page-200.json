@@ -1,0 +1,10 @@
+{
+  "id": "unreadable-challenge-page-200",
+  "kind": "unreadable",
+  "expect": "fail",
+  "page_url": "https://bench.example/challenge-page-200.html",
+  "fetch": {
+    "status": 200,
+    "text": "<!doctype html><html><head><title>Just a moment...</title></head><body><p>Checking your browser before accessing the site. This process is automatic and takes a few seconds.</p></body></html>"
+  }
+}

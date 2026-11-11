@@ -1,0 +1,10 @@
+{
+  "id": "unreadable-http-403",
+  "kind": "unreadable",
+  "expect": "refuse",
+  "page_url": "https://bench.example/http-403.html",
+  "fetch": {
+    "status": 403,
+    "text": "<html><body><h1>403 Forbidden</h1></body></html>"
+  }
+}

@@ -1,14 +1,15 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ChatModel } from "@/lib/ai/model";
-import { evaluateRsl, parseRsl, rslAllowsRun } from "@/lib/rsl";
+import { checkRsl, evaluateRsl, parseRsl, rslAllowsRun, type RslFetcher } from "@/lib/rsl";
 import { hiddenTextCheck } from "@/lib/tab/engine";
 import type { Brief } from "@/lib/tools/brief";
-import { hiddenTextOf, htmlToText } from "@/lib/tools/source";
+import { hiddenTextOf, htmlToText, resolveSource } from "@/lib/tools/source";
+import type { WringOutput } from "@/lib/tools/wring";
 import { runWring } from "@/lib/tools/wring";
 import { verify, type Verdict } from "@/lib/verify/verifier";
 
-export type BenchKind = "clean" | "thin" | "injected" | "forged_quote" | "offset_shift" | "invented_claim" | "prohibited" | "olp";
+export type BenchKind = "clean" | "thin" | "injected" | "forged_quote" | "offset_shift" | "invented_claim" | "prohibited" | "olp" | "unreadable";
 export type BenchOutcome = "pass" | "fail" | "refuse";
 
 export interface BenchItem {
@@ -20,6 +21,8 @@ export interface BenchItem {
   html?: string;
   text?: string;
   license_xml?: string;
+  // What the page fetch returned, for unreadable sources (blocked, challenge, rate limited).
+  fetch?: { status: number; headers?: Record<string, string>; text: string };
   note?: string;
 }
 
@@ -64,23 +67,58 @@ export function attack(b: Brief, kind: BenchKind): Brief {
 const mechanicalFail = (v: Verdict) => !v.pass && v.checks.some((c) => c.name !== "judge" && !c.pass);
 const ATTACKS: BenchKind[] = ["forged_quote", "offset_shift", "invented_claim"];
 
-// Mirrors the tool path: RSL gate, one self-repair on mechanical failures, judge, hidden-text check.
-export async function runItem(item: BenchItem, m: { generator: ChatModel; judge: ChatModel }): Promise<BenchResult> {
+type Generated = { out: WringOutput; v: Verdict };
+export type GenCache = Map<string, Promise<Generated>>;
+
+// One generation per source text, so attack items tamper with the same brief the clean item was scored on.
+function generate(text: string, m: { generator: ChatModel; judge: ChatModel }, cache: GenCache): Promise<Generated> {
+  let g = cache.get(text);
+  if (!g) {
+    g = (async () => {
+      let out = await runWring(m.generator, text);
+      let v = await verify(text, out.brief, m.judge);
+      if (mechanicalFail(v)) {
+        out = await runWring(m.generator, text, v.reasons);
+        v = await verify(text, out.brief, m.judge);
+      }
+      return { out, v };
+    })();
+    cache.set(text, g);
+  }
+  return g;
+}
+
+const fetcherFor = (item: BenchItem): RslFetcher => async (url) => ({
+  status: item.fetch!.status,
+  url,
+  headers: new Headers({ "content-type": "text/html", ...(item.fetch!.headers ?? {}) }),
+  text: item.fetch!.text,
+});
+
+// Mirrors the tool path: RSL gate, page fetch, one self-repair on mechanical failures, judge, hidden-text check.
+export async function runItem(item: BenchItem, m: { generator: ChatModel; judge: ChatModel }, cache: GenCache = new Map()): Promise<BenchResult> {
   const base = { id: item.id, kind: item.kind, style: item.style, expect: item.expect };
   const done = (got: BenchOutcome, score: number, reason: string, extra: Partial<BenchResult> = {}): BenchResult => ({ ...base, got, ok: got === item.expect, score, reason, ...extra });
   try {
-    if (item.license_xml) {
+    let text = item.html ? htmlToText(item.html) : (item.text ?? "");
+    let hidden = item.html ? hiddenTextOf(item.html) : [];
+    if (item.fetch) {
+      const fetcher = fetcherFor(item);
+      const r = await checkRsl(item.page_url, { fetcher });
+      if (!rslAllowsRun(r)) return done("refuse", 0, `RSL ${r.status}: ${r.reason}`);
+      try {
+        const src = await resolveSource(item.page_url, fetcher);
+        text = src.text;
+        hidden = src.hidden;
+      } catch (e) {
+        return done("refuse", 0, `not run (RSL ${r.status}): ${(e as Error).message}`);
+      }
+    } else if (item.license_xml) {
       const r = evaluateRsl(parseRsl(item.license_xml), item.page_url);
       if (!rslAllowsRun({ ...r, sourceUrl: item.page_url })) return done("refuse", 0, `RSL ${r.status}: ${r.reason}`);
     }
-    const text = item.html ? htmlToText(item.html) : (item.text ?? "");
-    const hidden = item.html ? hiddenTextOf(item.html) : [];
-    let out = await runWring(m.generator, text);
-    let v = await verify(text, out.brief, m.judge);
-    if (mechanicalFail(v)) {
-      out = await runWring(m.generator, text, v.reasons);
-      v = await verify(text, out.brief, m.judge);
-    }
+    const { out, v: clean } = await generate(text, m, cache);
+    let v = clean;
     let brief = out.brief;
     let baseline: BenchOutcome | undefined;
     if (ATTACKS.includes(item.kind)) {
@@ -97,8 +135,9 @@ export async function runItem(item: BenchItem, m: { generator: ChatModel; judge:
 
 export async function runBench(items: BenchItem[], m: { generator: ChatModel; judge: ChatModel }, onResult?: (r: BenchResult) => void) {
   const results: BenchResult[] = [];
+  const cache: GenCache = new Map();
   for (const it of items) {
-    const r = await runItem(it, m);
+    const r = await runItem(it, m, cache);
     results.push(r);
     onResult?.(r);
   }
@@ -145,7 +184,7 @@ export function resultsMarkdown(rs: BenchResult[], meta: { date: string; mode: s
     `- False-fail rate: ${s.falseFailRate}`,
     `- Errors: ${s.errors}`,
     "",
-    "Run once, no tuning after the run. Attacks (forged quote, offset shift, invented claim) tamper with the generator's own brief after it was written; `baseline` is that brief's verdict before tampering.",
+    "Run once, no tuning after the run. Each source text is generated once. Attacks (forged quote, offset shift, invented claim) tamper with that same brief after it was written; `baseline` is its verdict before tampering.",
     "",
     "| Kind | Items | Matched expectation |",
     "| --- | --- | --- |",

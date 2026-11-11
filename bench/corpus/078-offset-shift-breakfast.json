@@ -1,0 +1,7 @@
+{
+  "id": "offset-shift-breakfast",
+  "kind": "offset_shift",
+  "expect": "fail",
+  "page_url": "https://bench.example/breakfast.html",
+  "html": "<!doctype html><html><head><title>bench</title></head><body>\n<p>The Harmon Valley school district will serve free breakfast in every classroom starting in September, after a two-year pilot at four elementary schools.</p>\n<p>During the pilot, breakfast participation at those schools rose from 31 percent of students to 78 percent, according to the district's nutrition office.</p>\n<p>Teachers at the pilot schools reported 22 percent fewer visits to the nurse's office before lunch, mostly for headaches and stomachaches.</p>\n<p>The program will cost about $2.3 million a year, and the district expects federal meal reimbursements to cover all but $180,000 of it.</p>\n<p>Breakfast will be delivered to classrooms in insulated bags by 7:50 each morning, and students will eat during the first ten minutes of the school day.</p>\n<p>The union representing custodial staff negotiated two additional positions to handle the extra cleanup in classrooms.</p>\n</body></html>"
+}
