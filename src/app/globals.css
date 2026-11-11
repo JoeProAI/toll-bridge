@@ -362,7 +362,8 @@ main > .hero .btn-plum, .hero .btn-plum { --bg: var(--tn-gold-500); --fg: var(--
   .budget { display: flex; justify-content: space-between; align-items: baseline; margin-left: 0; }
   .budget + .budget { border-left: 1.5px solid var(--tn-green-800); border-top: 2px dashed var(--tn-green-800); margin-top: -1.5px; }
   .budget:first-child { border-radius: 4px 4px 0 0; } .budget:last-child { border-radius: 0 0 4px 4px; }
-  .budget.is-on::after { top: auto; bottom: 12px; }
+  .budget.is-on { padding-top: 32px; }
+  .budget.is-on::after { top: 12px; bottom: auto; }
   .inputs { grid-template-columns: minmax(0,1fr); }
   .actions .btn, .hero-cta .btn { flex: 1 1 100%; }
   .receipt-rows .row { grid-template-columns: minmax(0,1fr); gap: 2px; }
@@ -401,3 +402,5 @@ main > .hero .btn-plum, .hero .btn-plum { --bg: var(--tn-gold-500); --fg: var(--
   .booth .step:nth-child(3) { border-left: 0; }
   .booth .step:nth-child(n + 3) { border-top: 1px solid var(--tn-rule); }
 }
+.receipt-sec { margin: 8px 0 -6px; font-size: 19px; }
+.panel-summary .st { margin-right: 4px; }

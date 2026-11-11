@@ -1,5 +1,6 @@
 "use client";
 
+import { humanStatus } from "./format";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -396,8 +397,6 @@ function AgentPanel({ config, pick, setPick, custom, setCustom, busy, stage, las
   );
 }
 
-export const humanStatus = (s: string) => (s ? s.charAt(0) + s.slice(1).toLowerCase().replace(/_/g, " ") : s);
-
 function Booth({ stage, last, n, remaining }: { stage: Stage; last: WringResult | null; n: number; remaining: string }) {
   if (!stage && !last) return null;
   const c = stage ? null : last!.call;
@@ -501,7 +500,8 @@ function Summary({ view, onNew }: { view: TabView; onNew: () => void }) {
           <ul className="caps">
             {view.payout.items.map((i) => (
               <li key={i.payout_item_id ?? i.payee.receiver}>
-                <span className="mono">{i.payout_item_id ?? "pending"}</span> {i.amount} to {i.payee.receiver} {i.status ?? ""}
+                <span className={`st ${i.status === "SUCCESS" ? "st-paid" : i.status && !["PENDING", "UNCLAIMED", "ONHOLD"].includes(i.status) ? "st-refused" : "st-pending"}`}>{i.status === "SUCCESS" ? "Payout sent" : i.status ? humanStatus(i.status) : "Payout queued"}</span>{" "}
+                <span className="mono">{i.payout_item_id ?? "pending"}</span> {i.amount} to {i.payee.receiver}
                 {i.payout_item_fee ? ` (PayPal fee ${i.payout_item_fee})` : ""}
               </li>
             ))}

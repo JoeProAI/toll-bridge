@@ -76,7 +76,7 @@ export function HoldMeter({ heldCents, priceCents, capturedCents, closed, voided
           const fresh = (isBitten && i === freshPass) || (state === "home" && freshId === "close");
           return (
             <span key={i} className={`chunk is-${state} ${fresh ? "is-fresh" : ""}`} style={{ ["--i" as string]: i }}>
-              <span className="chunk-val">{isBitten ? shortId(cap, 4) || "paid" : state === "home" ? "void" : money(Math.min(priceCents, heldCents - i * priceCents))}</span>
+              <span className="chunk-val">{isBitten ? (cap === "accrued" ? "on tab" : shortId(cap, 4) || "paid") : state === "home" ? "void" : money(Math.min(priceCents, heldCents - i * priceCents))}</span>
             </span>
           );
         })}
