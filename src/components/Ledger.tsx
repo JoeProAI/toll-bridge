@@ -1,87 +1,93 @@
 "use client";
-
-import { AllCommunityModule, ModuleRegistry, themeQuartz, type ColDef, type ICellRendererParams } from "ag-grid-community";
+// Proposed replacement for src/components/Ledger.tsx. Styling and display only.
+// Same props, same data, same receipt links. Adds: Toll Note theme, status and
+// amount renderers, quote-check pips, pinned totals row, a slim column set
+// under 640px. Needs the CSS classes in SPEC.md section 5.
+import { AllCommunityModule, ModuleRegistry, type ICellRendererParams } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { CallView } from "@/lib/client/api";
+import { CAPTURE_STATUS, CHECK_LETTERS, cleanTitle, ledgerColumns, tollNoteTheme, totalsRow } from "./ag-grid-theme";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
+type P = ICellRendererParams<CallView>;
+const pinned = (p: P) => !!p.node.rowPinned;
+const isNarrow = (p: P) => !!(p as P & { narrow?: boolean }).narrow; // set via cellRendererParams on the slim column
 
-export const theme = themeQuartz.withParams({
-  fontFamily: "var(--font-body), sans-serif",
-  headerFontFamily: "var(--font-display), sans-serif",
-  headerFontWeight: 800,
-  headerFontSize: 13,
-  fontSize: 14,
-  backgroundColor: "#FFFFFF",
-  foregroundColor: "#2B0A3D",
-  headerBackgroundColor: "#2B0A3D",
-  headerTextColor: "#D4FF3F",
-  borderColor: "#2B0A3D",
-  rowBorder: { color: "#E6D6F2", width: 1, style: "solid" },
-  oddRowBackgroundColor: "#FBF5FF",
-  accentColor: "#FF2E93",
-  rowHoverColor: "#F2FFCB",
-  wrapperBorderRadius: 0,
-  wrapperBorder: { color: "#2B0A3D", width: 3, style: "solid" },
-  spacing: 7,
-  cellHorizontalPadding: 12,
-});
-
-function Verdict(p: ICellRendererParams<CallView>) {
-  const v = p.data?.verdict;
-  return <span className={`pill pill-${v}`}>{v === "pass" ? "Pass" : "Fail"}</span>;
-}
-
-function CaptureCell(p: ICellRendererParams<CallView>) {
+const Call = (p: P) =>
+  pinned(p) ? <span className="tot">{p.data?.title}</span> : (
+    <span className="cell-call"><b>{cleanTitle(p.data?.title)}</b><span>{p.data?.tool} &middot; {p.data?.quote_id}</span></span>
+  );
+const Verdict = (p: P) => (pinned(p) ? null : p.data?.verdict === "pass" ? <span className="st st-paid">Pass</span> : <span className="st st-refused">Fail</span>);
+const Checks = (p: P) => {
+  if (pinned(p) || !p.data) return null;
+  const e = Object.entries(p.data.checks);
+  return (
+    <span className="pips" aria-label={e.map(([k, v]) => `${k} ${v ? "ok" : "failed"}`).join(", ")}>
+      {e.map(([k, v]) => <span key={k} className={`pip ${v ? "" : "x"}`} title={k}>{CHECK_LETTERS[k] ?? k[0].toUpperCase()}</span>)}
+      <span className="cell-muted pip-score">{p.data.score ?? "-"}</span>
+    </span>
+  );
+};
+const Amount = (p: P) => {
+  if (!p.data) return null;
+  if (pinned(p)) return <span className="amt amt-total">${p.data.charged}</span>;
+  if (p.data.capture_id) return <span className="amt">${p.data.charged}</span>;
+  if (isNarrow(p)) return <span className="amt amt-none">$0.00<span className="amt-sub">not charged</span></span>;
+  return <span className="amt amt-none"><s>${p.data.price}</s> $0.00<span className="sr-only"> not charged</span></span>;
+};
+const Capture = (p: P) => {
   const d = p.data;
   if (!d) return null;
-  if (!d.capture_id) return <span className="cell-muted">{d.charge_error ? `none (${d.charge_error})` : "none"}</span>;
-  return (
-    <Link className="cell-id" href={`/receipt/${encodeURIComponent(d.capture_id)}`}>
-      {d.capture_id}
-    </Link>
-  );
-}
-
-function ReceiptCell(p: ICellRendererParams<CallView>) {
+  if (pinned(p)) return <span className="tot">{d.capture_id}</span>;
+  if (!d.capture_id) return <span className="cell-muted">{d.charge_error ? `none (${d.charge_error})` : "none, not captured"}</span>;
+  return <Link className="cell-id" href={`/receipt/${encodeURIComponent(d.capture_id)}`}>{d.capture_id}</Link>;
+};
+const Status = (p: P) => {
+  if (pinned(p)) return null;
+  if (!p.value) return <span className="cell-muted">-</span>;
+  const s = CAPTURE_STATUS[p.value] ?? { cls: "st-held", label: String(p.value) };
+  return <span className={`st ${s.cls}`}>{s.label}</span>;
+};
+const Receipt = (p: P) => (pinned(p) || !p.data ? null : <Link className="rcpt" href={`/receipt/${encodeURIComponent(p.data.capture_id ?? p.data.call_id)}`}>Receipt &rarr;</Link>);
+const Mobile = (p: P) => {
   const d = p.data;
   if (!d) return null;
+  if (pinned(p)) return <span className="tot">{d.title}</span>;
   return (
-    <Link className="cell-link" href={`/receipt/${encodeURIComponent(d.capture_id ?? d.call_id)}`}>
-      Receipt
+    <Link className="cell-call cell-wrap" href={`/receipt/${encodeURIComponent(d.capture_id ?? d.call_id)}`}>
+      <b>{cleanTitle(d.title)}</b>
+      <span>{d.capture_id ?? d.reasons[0] ?? "not captured"}</span>
+      {d.verdict === "pass" ? <span className="st st-paid">Pass</span> : <span className="st st-refused">Fail</span>}
     </Link>
   );
-}
+};
 
-export default function Ledger({ calls }: { calls: CallView[] }) {
-  const cols = useMemo<ColDef<CallView>[]>(
-    () => [
-      { headerName: "#", valueGetter: (p) => (p.node?.rowIndex ?? 0) + 1, width: 58, pinned: "left", sortable: false },
-      { headerName: "Source", valueGetter: (p) => p.data?.title ?? "(no brief)", minWidth: 170, flex: 1.4, tooltipValueGetter: (p) => p.data?.title ?? "" },
-      { headerName: "Verdict", field: "verdict", cellRenderer: Verdict, width: 110 },
-      { headerName: "Score", field: "score", width: 92, valueFormatter: (p) => (p.value == null ? "-" : String(p.value)) },
-      { headerName: "Charged", field: "charged", width: 104, cellClass: (p) => (p.data?.capture_id ? "cell-charged" : "cell-free") },
-      { headerName: "PayPal capture", field: "capture_id", cellRenderer: CaptureCell, minWidth: 190, flex: 1.4 },
-      { headerName: "Status", field: "capture_status", width: 124, valueFormatter: (p) => p.value ?? "-" },
-      { headerName: "Why", valueGetter: (p) => (p.data?.verdict === "pass" ? "All checks passed" : p.data?.reasons.join("; ")), minWidth: 220, flex: 2, wrapText: true, autoHeight: true, cellClass: "cell-why" },
-      { headerName: "Time", field: "at", width: 104, valueFormatter: (p) => new Date(p.value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) },
-      { headerName: "", cellRenderer: ReceiptCell, width: 96, sortable: false, pinned: "right" },
-    ],
-    [],
-  );
+export default function Ledger({ calls, held }: { calls: CallView[]; held?: string }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    if (!box.current) return;
+    const ro = new ResizeObserver(([e]) => setNarrow(e.contentRect.width < 640));
+    ro.observe(box.current);
+    return () => ro.disconnect();
+  }, []);
+  const cols = useMemo(() => ledgerColumns({ Call, Verdict, Checks, Amount, Capture, Status, Receipt, Mobile }), []);
+  const totals = useMemo(() => totalsRow(calls, held ?? "0.00"), [calls, held]);
   return (
-    <div className="ledger-grid">
+    <div className="ledger-grid" ref={box}>
       <AgGridReact<CallView>
-        theme={theme}
+        theme={tollNoteTheme}
         rowData={calls}
-        columnDefs={cols}
+        columnDefs={narrow ? cols.slim : cols.wide}
+        pinnedBottomRowData={totals}
         getRowId={(p) => p.data.call_id}
         domLayout="autoHeight"
-        defaultColDef={{ sortable: true, resizable: true }}
+        defaultColDef={{ sortable: true, resizable: !narrow, suppressMovable: true }}
         tooltipShowDelay={300}
         suppressCellFocus
+        animateRows
       />
     </div>
   );

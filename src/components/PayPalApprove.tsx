@@ -31,7 +31,7 @@ function LiveButtons({ clientId, budget, onClaimed, onError }: { clientId: strin
     <div className="pp-live">
       <PayPalScriptProvider options={{ clientId, intent: "authorize", currency: "USD", components: "buttons" }}>
         <PayPalButtons
-          style={{ layout: "vertical", shape: "rect", color: "black", label: "paypal", height: 48 }}
+          style={{ layout: "vertical", shape: "rect", color: "gold", label: "paypal", height: 48 }}
           forceReRender={[budget]}
           disabled={state === "authorizing"}
           createOrder={async () => {

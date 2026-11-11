@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import type { CallView, TabView } from "@/lib/client/api";
-import { theme } from "./Ledger";
+import { tollNoteTheme as theme } from "./ag-grid-theme";
 
 export interface RoyaltyRow {
   id: string;

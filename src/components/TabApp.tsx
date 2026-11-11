@@ -262,7 +262,7 @@ export function TabApp() {
                 <p>Send one and it lands here with its verdict and PayPal capture ID.</p>
               </div>
             ) : (
-              grid === "ledger" ? <Ledger calls={view.calls} /> : <Royalties view={view} />
+              grid === "ledger" ? <Ledger calls={view.calls} held={view.tab.held} /> : <Royalties view={view} />
             )}
           </section>
         </>
