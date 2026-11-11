@@ -57,11 +57,17 @@ export function workersAiConfig() {
 
 const DEV_SECRET = "toll-bridge-dev-only-secret-do-not-use-in-prod";
 
+// Signs tab, quote and receipt tokens. Live sandbox and any Vercel deploy
+// must set TAB_SECRET explicitly; only local fixtures fall back to a dev key.
 export function tabSecret(): string {
   const s = env("TAB_SECRET");
-  if (s) return s;
-  const creds = paypalCredentials();
-  if (creds) return `derived:${creds.clientSecret}`;
+  if (s) {
+    if (s.length < 16) throw new Error("TAB_SECRET is too short. Use at least 16 characters (openssl rand -hex 32).");
+    return s;
+  }
+  if (paypalMode() === "live-sandbox" || env("VERCEL")) {
+    throw new Error("TAB_SECRET is not set. It's required in live-sandbox mode and on Vercel.");
+  }
   return DEV_SECRET;
 }
 
