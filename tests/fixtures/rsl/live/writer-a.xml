@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- DEMO license for a fictional writer on the Toll Bridge hackathon demo site. PayPal sandbox only. -->
+<rsl xmlns="https://rslstandard.org/rsl">
+  <content url="">
+    <license>
+      <permits type="usage">ai-input search</permits>
+      <prohibits type="usage">ai-train</prohibits>
+      <payment type="use">
+        <amount currency="USD">0.05</amount>
+        <accepts type="application/vnd.tollbridge.paypal-payout+json"><![CDATA[{"recipient_type":"EMAIL","receiver":"sb-ak43ew42095534@personal.example.com","note":"Toll Bridge proposal media type, not part of RSL or PayPal. Sandbox only. TEMPORARY: payee is the sandbox buyer account standing in until the demo writer sandbox accounts exist."}]]></accepts>
+      </payment>
+    </license>
+    <copyright type="person">Mara Quill (fictional demo writer)</copyright>
+    <terms>https://joeproai.github.io/toll-bridge-writers/terms.html</terms>
+  </content>
+</rsl>

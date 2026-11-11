@@ -169,3 +169,27 @@ describe("RSL helpers", () => {
     expect(pathMatches("", "/x")).toBe(true);
   });
 });
+
+describe("RSL against pages recorded from the live demo writer site", () => {
+  const live = () => {
+    const routes: Record<string, Resp> = {};
+    for (const p of ["a", "b", "c", "d"]) {
+      routes[`${W}/${p}.html`] = html(fx(`live/${p}.html`));
+      routes[`${W}/licenses/writer-${p}.xml`] = xml(fx(`live/writer-${p}.xml`));
+    }
+    return fetcherFrom(routes);
+  };
+
+  it.each(["a", "b", "d"])("%s.html is paid_use at 0.05 USD; ai-train in prohibits doesn't block ai-input; the extra note key is tolerated", async (p) => {
+    const r = await checkRsl(`${W}/${p}.html`, { fetcher: live() });
+    expect(r).toMatchObject({ status: "paid_use", via: "html-link", royaltyCents: 5, currency: "USD", licenseUrl: `${W}/licenses/writer-${p}.xml` });
+    expect(r.payee).toEqual({ recipient_type: "EMAIL", receiver: "sb-ak43ew42095534@personal.example.com" });
+    expect(rslAllowsRun(r)).toBe(true);
+  });
+
+  it("c.html prohibits ai-all, so it's refused", async () => {
+    const r = await checkRsl(`${W}/c.html`, { fetcher: live() });
+    expect(r.status).toBe("prohibited");
+    expect(rslAllowsRun(r)).toBe(false);
+  });
+});

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- DEMO license: this fictional writer says no AI use. -->
+<rsl xmlns="https://rslstandard.org/rsl">
+  <content url="">
+    <license>
+      <permits type="usage">search</permits>
+      <prohibits type="usage">ai-all</prohibits>
+    </license>
+    <copyright type="person">June Okonkwo (fictional demo writer)</copyright>
+    <terms>https://joeproai.github.io/toll-bridge-writers/terms.html</terms>
+  </content>
+</rsl>
