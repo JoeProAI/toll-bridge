@@ -1,5 +1,7 @@
 # Toll Bridge
 
+[![CI](https://github.com/JoeProAI/toll-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/JoeProAI/toll-bridge/actions/workflows/ci.yml)
+
 **A PayPal tab for AI agents.** You approve one budget hold in PayPal. Your agent pays per tool call out of that hold, and PayPal only captures a call's toll when the result passes its checks. A failed call costs nothing. Whatever's left is voided when the tab closes.
 
 Live: _pending deploy_ (see [the PR](https://github.com/JoeProAI/toll-bridge/pull/1) for status). PayPal **sandbox only**. No real money moves.
