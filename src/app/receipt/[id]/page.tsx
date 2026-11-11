@@ -81,7 +81,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
           <Link href="/tab" className="btn btn-plum">
             Back to the tab
           </Link>
-          <a className="btn btn-ghost" download={`toll-bridge-receipt-${c.id}.json`} href={`data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(r.receipt, null, 2))}`}>
+          <a className="btn btn-ghost" download={`toll-bridge-receipt-${c.call_id}.json`} href={`data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(r.receipt, null, 2))}`}>
             Download signed receipt
           </a>
           <Link href="/verify" className="btn btn-link">
