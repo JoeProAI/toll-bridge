@@ -1,8 +1,9 @@
 import { FakeModel } from "@/lib/ai/fake";
 import type { ChatModel } from "@/lib/ai/model";
 import { WorkersAiModel } from "@/lib/ai/workers";
-import { modelMode, payoutThresholdCents, paypalCredentials, paypalMode, publicBaseUrl, settlementMode, tabSecret, workersAiConfig, type PayPalMode } from "@/lib/config";
+import { modelMode, payoutThresholdCents, paypalCredentials, paypalMode, publicBaseUrl, receiptSeed, settlementMode, tabSecret, workersAiConfig, type PayPalMode } from "@/lib/config";
 import { kvFromEnv } from "@/lib/royalty/kv";
+import { receiptKeyFromSeed, type ReceiptKey } from "@/lib/receipt";
 import type { PayPalClient } from "@/lib/paypal/client";
 import { emptyFixtureState, FixturePayPal, type FixtureState } from "@/lib/paypal/fixtures";
 import { LiveSandboxPayPal } from "@/lib/paypal/live";
@@ -41,4 +42,13 @@ export function depsFor(opts: { mode?: PayPalMode; fx?: FixtureState; baseUrl?: 
     thresholdCents: payoutThresholdCents(),
     settlement: settlementMode(),
   };
+}
+
+let cachedKey: ReceiptKey | null = null;
+export function receiptKey(): ReceiptKey {
+  if (!cachedKey) {
+    const { seed, dev } = receiptSeed();
+    cachedKey = receiptKeyFromSeed(seed, dev);
+  }
+  return cachedKey;
 }

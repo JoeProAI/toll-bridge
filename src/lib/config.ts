@@ -106,3 +106,20 @@ export function publicBaseUrl(): string {
   if (vercel) return `https://${vercel}`;
   return "http://localhost:3000";
 }
+
+// Ed25519 receipt key: a 32-byte seed, base64 (openssl rand -base64 32).
+// Without it, local and fixture runs use a published dev key and say so.
+export const DEV_RECEIPT_SEED = "dG9sbC1icmlkZ2UtZGV2LXJlY2VpcHQta2V5LW5vdCE=";
+
+export function receiptSeed(): { seed: Buffer; dev: boolean } {
+  const v = env("RECEIPT_SIGNING_KEY");
+  if (v) {
+    const seed = Buffer.from(v, "base64");
+    if (seed.length !== 32) throw new Error("RECEIPT_SIGNING_KEY must be a 32-byte Ed25519 seed in base64 (openssl rand -base64 32).");
+    return { seed, dev: false };
+  }
+  if (paypalMode() === "live-sandbox" || env("VERCEL")) {
+    throw new Error("RECEIPT_SIGNING_KEY is not set. It's required in live-sandbox mode and on Vercel.");
+  }
+  return { seed: Buffer.from(DEV_RECEIPT_SEED, "base64"), dev: true };
+}

@@ -6,7 +6,8 @@ import { MemoryKv } from "@/lib/royalty/kv";
 import { senderBatchIdFor, settleRoyalties, payeeLedger, payeeKey } from "@/lib/royalty/ledger";
 import type { FetchedDoc, RslFetcher } from "@/lib/rsl";
 import { callTool, closeTab, quote, reconcile, RefusedError, royaltyDeps, summarize } from "@/lib/tab/engine";
-import { receiptPayload, signReceipt } from "@/lib/receipt";
+import { DEV_RECEIPT_SEED } from "@/lib/config";
+import { receiptKeyFromSeed, receiptPayload, signReceipt } from "@/lib/receipt";
 import { makeDeps, openedTab, PASS_TEXT } from "./helpers";
 
 const W = "https://joeproai.github.io/toll-bridge-writers";
@@ -78,7 +79,7 @@ describe("RSL quote and call", () => {
     expect(r.record.chargeCents).toBe(55);
     expect(r.record.spans!.length).toBeGreaterThan(0);
     for (const s of r.record.spans!) expect(r.sourceText.slice(s.start, s.end)).toBe(s.quote);
-    const signed = signReceipt(receiptPayload(r.tab, r.record), "k".repeat(32));
+    const signed = signReceipt(receiptPayload(r.tab, r.record), receiptKeyFromSeed(Buffer.from(DEV_RECEIPT_SEED, "base64")), "https://x.test");
     expect(signed.receipt).toMatchObject({ input_url: `${W}/a.html`, royalty: "0.05", tool_fee: "0.50", payee: WRITER_A, rsl_status: "paid_use", generator_model: "fake/deterministic" });
     expect(signed.receipt.policy_hash).toMatch(/^[0-9a-f]{64}$/);
   });
