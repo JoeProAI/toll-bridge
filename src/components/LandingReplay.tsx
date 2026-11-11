@@ -34,7 +34,7 @@ export function LandingReplay() {
   const [i, setI] = useState(0);
   const [paused, setPaused] = useState(false);
   useEffect(() => {
-    if (paused) return;
+    if (paused || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const t = setTimeout(() => setI((x) => (x + 1) % STEPS.length), i === STEPS.length - 1 ? 4200 : 2400);
     return () => clearTimeout(t);
   }, [i, paused]);
