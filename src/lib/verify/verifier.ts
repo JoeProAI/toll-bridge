@@ -3,7 +3,7 @@ import { BriefSchema, type Brief } from "../tools/brief";
 import { normalize, spanMatches } from "../tools/spans";
 
 export interface Check {
-  name: "schema" | "spans" | "grounding" | "coverage" | "judge";
+  name: "schema" | "spans" | "grounding" | "coverage" | "judge" | "hidden";
   pass: boolean;
   detail: string;
 }

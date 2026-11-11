@@ -1,10 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { callTool, quote, sealTab } from "@/lib/tab/engine";
-import { resolveSource, SourceError } from "@/lib/tools/source";
-import { TollError } from "@/lib/tab/engine";
+import { callTool, quote, RefusedError, sealTab, TollError } from "@/lib/tab/engine";
 import { depsFor } from "@/server/deps";
 import { errorResponse, jsonBody, readTab, withTabCookie } from "@/server/http";
-import { callView } from "@/server/views";
+import { callView, receiptFor } from "@/server/views";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -20,17 +18,21 @@ export async function POST(req: NextRequest) {
     const d = depsFor({ mode: tab.mode, fx: tab.fx });
     const quoteToken = req.headers.get("x-toll-quote") || body.quote;
     if (!quoteToken) {
-      let text: string;
+      let q: Awaited<ReturnType<typeof quote>>;
       try {
-        text = (await resolveSource(input)).text;
+        q = await quote(d, tab, "wring", input);
       } catch (e) {
-        throw new TollError(422, "bad_source", e instanceof SourceError ? e.message : "Couldn't read that input.");
+        if (!(e instanceof RefusedError)) throw e;
+        const token = sealTab(d, e.tab);
+        return withTabCookie(
+          NextResponse.json({ error: { code: e.code, message: e.message }, price: "0.00", rsl: e.record.rsl, call: callView(e.record), tab_token: token }, { status: 451 }),
+          token,
+        );
       }
-      const q = await quote(d, tab, "wring", text);
       return NextResponse.json(
         {
           error: { code: "payment_required", message: `wring costs ${q.price.value} USD, captured from your PayPal hold only if the result passes checks.` },
-          quote: { quote_id: q.quote.qid, price: q.price, remaining: q.remaining, expires_at: new Date(q.quote.exp).toISOString(), terms: q.terms },
+          quote: { quote_id: q.quote.qid, price: q.price, lines: q.lines, rsl: q.rsl, settlement: q.settlement, remaining: q.remaining, expires_at: new Date(q.quote.exp).toISOString(), terms: q.terms },
           quote_token: q.quoteToken,
           retry: "POST the same body again with header X-Toll-Quote: <quote_token>",
         },
@@ -43,8 +45,10 @@ export async function POST(req: NextRequest) {
       call: callView(r.record),
       replayed: r.replayed,
       verdict: { pass: r.verdict.pass, score: r.verdict.score, checks: r.verdict.checks, reasons: r.verdict.reasons, judge: r.verdict.judge },
-      result: r.record.captureId ? r.brief : null,
-      rejected_output: r.record.captureId ? null : r.brief,
+      result: r.record.verdict === "pass" && !r.record.chargeError ? r.brief : null,
+      rejected_output: r.record.verdict === "pass" && !r.record.chargeError ? null : r.brief,
+      receipt: receiptFor(d, r.tab, r.record),
+      snapshot: r.replayed ? null : { sha256: r.record.pageSha256, chars: r.sourceText.length },
       tab_token: token,
     });
     return withTabCookie(res, token);

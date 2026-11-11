@@ -1,6 +1,6 @@
 import { SANDBOX_API } from "../config";
-import { PayPalApiError, type CaptureInput, type CardSource, type CreateOrderInput, type PayPalClient } from "./client";
-import type { Authorization, Capture, Order, PayPalErrorBody } from "./types";
+import { PayPalApiError, type CaptureInput, type CardSource, type CreateOrderInput, type CreatePayoutInput, type PayPalClient } from "./client";
+import type { Authorization, Capture, Order, PayoutBatch, PayPalErrorBody } from "./types";
 
 type Fetch = typeof fetch;
 
@@ -109,5 +109,14 @@ export class LiveSandboxPayPal implements PayPalClient {
 
   async voidAuthorization(authorizationId: string, opts: { requestId: string }): Promise<Authorization | null> {
     return this.call<Authorization>("POST", `/v2/payments/authorizations/${encodeURIComponent(authorizationId)}/void`, undefined, opts.requestId);
+  }
+
+  async createPayout(input: CreatePayoutInput): Promise<PayoutBatch> {
+    const body = { sender_batch_header: { sender_batch_id: input.senderBatchId, email_subject: input.emailSubject }, items: input.items };
+    return (await this.call<PayoutBatch>("POST", "/v1/payments/payouts", body, input.senderBatchId))!;
+  }
+
+  async getPayoutBatch(batchId: string): Promise<PayoutBatch> {
+    return (await this.call<PayoutBatch>("GET", `/v1/payments/payouts/${encodeURIComponent(batchId)}`))!;
   }
 }

@@ -1,5 +1,7 @@
 import type { FixtureState } from "../paypal/fixtures";
-import type { PayPalMode, ToolName } from "../config";
+import type { PayPalMode, SettlementMode, ToolName } from "../config";
+import type { PayoutPlan } from "../royalty/ledger";
+import type { RslPayee, RslStatus, RslVia } from "../rsl/types";
 import type { Check } from "../verify/verifier";
 
 export interface CallRecord {
@@ -7,7 +9,7 @@ export interface CallRecord {
   qid: string;
   tool: ToolName;
   priceCents: number;
-  verdict: "pass" | "fail";
+  verdict: "pass" | "fail" | "refused";
   score: number;
   checks: [Check["name"], boolean][];
   reasons: string[];
@@ -17,10 +19,27 @@ export interface CallRecord {
   captureId?: string;
   captureStatus?: string;
   chargeError?: string;
+  captureFeeCents?: number;
   model?: string;
+  judgeModel?: string;
   attempts?: number;
+  // RSL terms read at quote time, and the royalty quoted for this source.
+  rsl?: { status: RslStatus; reason: string; licenseUrl?: string; via?: RslVia; policyHash?: string };
+  royalty?: { cents: number; payee: RslPayee; policyHash?: string; licenseUrl?: string };
+  // What this call owes: tool fee plus earned royalty. 0 unless it passed.
+  chargeCents?: number;
+  pageSha256?: string;
+  spans?: { start: number; end: number; quote: string }[];
   at: string;
   ms: number;
+}
+
+export interface FinalCapture {
+  id: string;
+  status: string;
+  cents: number;
+  feeCents?: number;
+  netCents?: number;
 }
 
 export interface TabState {
@@ -35,8 +54,12 @@ export interface TabState {
   openedAt: string;
   expiresAt?: string;
   closedAt?: string;
-  closeAction?: "void" | "none";
+  closeAction?: "void" | "none" | "final-capture" | "final-capture+void";
   voidedCents?: number;
+  // Missing on tokens minted before settlement modes existed: per-call.
+  settlement?: SettlementMode;
+  finalCapture?: FinalCapture;
+  payout?: PayoutPlan;
   payer?: string;
   calls: CallRecord[];
   fx?: FixtureState;
@@ -48,6 +71,7 @@ export interface PendingTab {
   mode: PayPalMode;
   orderId: string;
   heldCents: number;
+  settlement?: SettlementMode;
   createdAt: string;
   fx?: FixtureState;
 }
@@ -58,6 +82,9 @@ export interface Quote {
   tool: ToolName;
   priceCents: number;
   inputHash: string;
+  sourceUrl?: string;
+  rsl?: CallRecord["rsl"];
+  royalty?: CallRecord["royalty"];
   exp: number;
 }
 

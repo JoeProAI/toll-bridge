@@ -71,6 +71,34 @@ export function tabSecret(): string {
   return DEV_SECRET;
 }
 
+export type SettlementMode = "tab" | "per-call";
+
+// "tab" (default): passing calls accrue and close makes one final capture.
+// "per-call": capture each passing call right away.
+export function settlementMode(): SettlementMode {
+  const v = env("SETTLEMENT_MODE");
+  if (!v || v === "tab") return "tab";
+  if (v === "per-call") return "per-call";
+  throw new Error(`Unknown SETTLEMENT_MODE ${v}. Use tab or per-call.`);
+}
+
+export const DEFAULT_PAYOUT_THRESHOLD_CENTS = 500;
+
+export function payoutThresholdCents(): number {
+  const v = env("PAYOUT_THRESHOLD_USD");
+  if (!v) return DEFAULT_PAYOUT_THRESHOLD_CENTS;
+  if (!/^\d+(\.\d{1,2})?$/.test(v)) throw new Error("PAYOUT_THRESHOLD_USD must look like 5.00");
+  const [w, f = ""] = v.split(".");
+  return Number(w) * 100 + Number((f + "00").slice(0, 2));
+}
+
+// Upstash Redis REST, either the Vercel Marketplace names or Upstash's own.
+export function kvConfig(): { url: string; token: string } | null {
+  const url = env("KV_REST_API_URL") ?? env("UPSTASH_REDIS_REST_URL");
+  const token = env("KV_REST_API_TOKEN") ?? env("UPSTASH_REDIS_REST_TOKEN");
+  return url && token ? { url: url.replace(/\/$/, ""), token } : null;
+}
+
 export function publicBaseUrl(): string {
   const explicit = env("PUBLIC_BASE_URL");
   if (explicit) return explicit.replace(/\/$/, "");

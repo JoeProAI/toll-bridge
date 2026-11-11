@@ -2,7 +2,7 @@ import { createMcpHandler } from "mcp-handler";
 import { z } from "zod";
 import { PayPalApiError } from "@/lib/paypal/client";
 import { TollError } from "@/lib/tab/engine";
-import { opClaim, opClose, opFixtureApprove, opOpen, opQuote, opStatus, opWring } from "@/server/ops";
+import { opClaim, opClose, opFixtureApprove, opOpen, opQuote, opRslCheck, opStatus, opWring } from "@/server/ops";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -59,10 +59,21 @@ const handler = createMcpHandler(
       "toll_quote",
       {
         title: "Quote a paid call",
-        description: "Price check for wring on this input. Returns a quote_token to pass to toll_wring. Nothing is charged.",
+        description:
+          "Price check for wring on this input: the tool fee plus a royalty line when the page's RSL 1.0 license asks for payment per use. Pages whose license prohibits AI input are refused at 0.00. Returns a quote_token for toll_wring. Nothing is charged.",
         inputSchema: z.object({ tab_token: tab, input: z.string().describe("Long text or an http(s) URL") }),
       },
       async ({ tab_token, input }) => wrap(() => opQuote(tab_token, input)),
+    );
+    server.registerTool(
+      "toll_rsl_check",
+      {
+        title: "Check a page's RSL license",
+        description:
+          "Finds and reads the RSL 1.0 license for a URL (HTTP Link header, HTML <link rel=license>, robots.txt) and says whether Toll Bridge may use it as AI input and what royalty it asks. Free.",
+        inputSchema: z.object({ url: z.string().url() }),
+      },
+      async ({ url }) => wrap(() => opRslCheck(url)),
     );
     server.registerTool(
       "toll_wring",
@@ -87,7 +98,8 @@ const handler = createMcpHandler(
       "toll_close_tab",
       {
         title: "Close the tab",
-        description: "Voids whatever is left on the PayPal hold. Captured tolls stay; the rest goes back to the payer.",
+        description:
+          "Settles the tab: one PayPal capture for the verified calls (tab mode), the rest of the hold goes back to the payer, and writers' royalties are paid with PayPal Payouts.",
         inputSchema: z.object({ tab_token: tab }),
       },
       async ({ tab_token }) => wrap(() => opClose(tab_token)),

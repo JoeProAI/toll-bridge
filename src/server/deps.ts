@@ -1,7 +1,8 @@
 import { FakeModel } from "@/lib/ai/fake";
 import type { ChatModel } from "@/lib/ai/model";
 import { WorkersAiModel } from "@/lib/ai/workers";
-import { modelMode, paypalCredentials, paypalMode, publicBaseUrl, tabSecret, workersAiConfig, type PayPalMode } from "@/lib/config";
+import { modelMode, payoutThresholdCents, paypalCredentials, paypalMode, publicBaseUrl, settlementMode, tabSecret, workersAiConfig, type PayPalMode } from "@/lib/config";
+import { kvFromEnv } from "@/lib/royalty/kv";
 import type { PayPalClient } from "@/lib/paypal/client";
 import { emptyFixtureState, FixturePayPal, type FixtureState } from "@/lib/paypal/fixtures";
 import { LiveSandboxPayPal } from "@/lib/paypal/live";
@@ -30,5 +31,14 @@ function models(): { generator: ChatModel; judge: ChatModel } {
 // the signed token, so they work on serverless with no database.
 export function depsFor(opts: { mode?: PayPalMode; fx?: FixtureState; baseUrl?: string } = {}): Deps {
   const mode = opts.mode ?? paypalMode();
-  return { paypal: paypalFor(mode, opts.fx), ...models(), secret: tabSecret(), baseUrl: opts.baseUrl ?? publicBaseUrl() };
+  return {
+    paypal: paypalFor(mode, opts.fx),
+    ...models(),
+    secret: tabSecret(),
+    baseUrl: opts.baseUrl ?? publicBaseUrl(),
+    // Fixture tabs keep their royalties in the tab token; KV is for real sandbox money.
+    kv: mode === "live-sandbox" ? kvFromEnv() : null,
+    thresholdCents: payoutThresholdCents(),
+    settlement: settlementMode(),
+  };
 }
