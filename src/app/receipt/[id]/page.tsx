@@ -10,6 +10,7 @@ interface Receipt {
   order_id: string;
   authorization_id: string;
   mode: string;
+  receipt: unknown;
 }
 
 export default function ReceiptPage({ params }: { params: Promise<{ id: string }> }) {
@@ -71,13 +72,22 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
               <Row k="Captured at" v={r.capture.create_time ?? "-"} />
             </>
           ) : (
-            <Row k="Capture" v="none. PayPal was never asked to move money for this call." />
+            <Row k="Capture" v={pass ? "not yet. This tab settles in one PayPal capture when it closes." : "none. PayPal was never asked to move money for this call."} />
           )}
         </dl>
         <p className="panel-sub">Capture details were just read back from PayPal, not from our own records.</p>
-        <Link href="/tab" className="btn btn-plum">
-          Back to the tab
-        </Link>
+        <p className="panel-sub">This receipt is signed with Ed25519. Anyone can check it against our public key, the page snapshot and the quoted spans.</p>
+        <div className="actions">
+          <Link href="/tab" className="btn btn-plum">
+            Back to the tab
+          </Link>
+          <a className="btn btn-ghost" download={`toll-bridge-receipt-${c.id}.json`} href={`data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(r.receipt, null, 2))}`}>
+            Download signed receipt
+          </a>
+          <Link href="/verify" className="btn btn-link">
+            Verify a receipt
+          </Link>
+        </div>
       </article>
     </section>
   );
