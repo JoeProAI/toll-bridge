@@ -17,6 +17,19 @@ export interface CallView {
   model?: string;
   at: string;
   ms?: number;
+  tool_fee?: string;
+  royalty?: { amount: string; earned: boolean; payee: { recipient_type: string; receiver: string } } | null;
+  rsl?: { status: string; reason?: string } | null;
+}
+
+export interface PayoutView {
+  ledger: "kv" | "per-tab";
+  note: string;
+  payout_batch_id: string | null;
+  batch_status: string | null;
+  error: string | null;
+  items: { payee: { receiver: string }; amount: string; payout_item_id: string | null; status: string | null; payout_item_fee: string | null }[];
+  accruing: { payee: { receiver: string }; unpaid: string; threshold: string }[];
 }
 
 export interface TabSummary {
@@ -34,6 +47,9 @@ export interface TabSummary {
   passed: number;
   failed: number;
   not_charged: string;
+  accrued?: string;
+  refused?: number;
+  settlement?: "tab" | "per-call";
   expires_at?: string;
 }
 
@@ -49,6 +65,9 @@ export interface TabView {
   calls: CallView[];
   prices: Record<string, string>;
   voided?: boolean;
+  final_capture?: { id: string; status: string; amount: string; paypal_fee: string | null; net: string | null } | null;
+  payout?: PayoutView | null;
+  fees?: { source: string; total: string };
 }
 
 export interface DemoInput {

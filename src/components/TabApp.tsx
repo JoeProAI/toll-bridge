@@ -87,7 +87,9 @@ export function TabApp() {
         const c = r.call;
         const checks = Object.values(c.checks);
         if (c.verdict === "pass") {
-          say("pass", `Verified: ${checks.filter(Boolean).length}/${checks.length} checks, judge ${c.score}. PayPal captured ${c.charged} as ${c.capture_id} (${c.capture_status}).`);
+          const head = `Verified: ${checks.filter(Boolean).length}/${checks.length} checks, judge ${c.score}.`;
+          const roy = c.royalty?.earned ? ` Includes a ${c.royalty.amount} royalty for ${c.royalty.payee.receiver}.` : "";
+          say("pass", c.capture_id ? `${head} PayPal captured ${c.charged} as ${c.capture_id} (${c.capture_status}).${roy}` : `${head} ${c.charged} added to the tab.${roy} PayPal captures the total once, at close.`);
         } else {
           say("fail", `Rejected: ${c.reasons.join("; ") || "failed checks"}. Nothing captured.`);
         }
@@ -148,7 +150,9 @@ export function TabApp() {
       const v = await post<TabView>("/api/tab/close");
       setView(v);
       setFresh("close");
-      say("in", v.voided ? `PayPal voided ${v.tab.voided} on authorization ${v.tab.authorization_id}.` : `Nothing left to void. Authorization is ${v.tab.authorization_status}.`);
+      if (v.final_capture) say("in", `PayPal captured ${v.final_capture.amount} once as ${v.final_capture.id} (final capture). Authorization is ${v.tab.authorization_status}; the rest of the hold is released.`);
+      else say("in", v.voided ? `PayPal voided ${v.tab.voided} on authorization ${v.tab.authorization_id}.` : `Nothing left to void. Authorization is ${v.tab.authorization_status}.`);
+      if (v.payout?.payout_batch_id) say("in", `Royalty payout batch ${v.payout.payout_batch_id}: ${v.payout.items.map((i) => `${i.amount} to ${i.payee.receiver}`).join(", ")}.`);
       setPhase("closed");
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Couldn't close the tab. Try again.");
@@ -192,10 +196,10 @@ export function TabApp() {
               <HoldMeter
                 heldCents={cents(view.tab.held)}
                 priceCents={cents(view.prices.wring ?? "0.50")}
-                capturedCents={cents(view.tab.captured)}
+                capturedCents={Math.max(cents(view.tab.captured), cents(view.tab.accrued ?? "0"))}
                 closed={view.tab.status === "closed"}
                 voidedCents={cents(view.tab.voided)}
-                calls={view.calls.map((c) => ({ id: c.call_id, verdict: c.verdict, capture_id: c.capture_id }))}
+                calls={view.calls.map((c) => ({ id: c.call_id, verdict: c.verdict, capture_id: c.capture_id ?? (c.verdict === "pass" && !c.charge_error ? "accrued" : null) }))}
                 freshId={fresh}
                 inflight={stage === "run" ? "run" : null}
               />
@@ -357,7 +361,7 @@ function AgentPanel({ config, pick, setPick, custom, setCustom, busy, stage, onS
           Run the demo agent
         </button>
         <button type="button" className="btn btn-ghost" onClick={onClose} disabled={busy || closing} aria-busy={closing}>
-          {closing ? "Voiding…" : "Close tab"}
+          {closing ? "Closing…" : "Close tab"}
         </button>
       </div>
       {empty && <p className="hint">The hold is used up. Close the tab to finish.</p>}
@@ -385,9 +389,15 @@ function Summary({ view, onNew }: { view: TabView; onNew: () => void }) {
             <td>−{t.captured}</td>
           </tr>
           <tr className="math-void">
-            <th scope="row">Voided back to the payer</th>
-            <td>{t.voided}</td>
+            <th scope="row">{view.final_capture ? "Released back to the payer" : "Voided back to the payer"}</th>
+            <td>{view.final_capture ? (Number(t.held) - Number(t.captured)).toFixed(2) : t.voided}</td>
           </tr>
+          {view.final_capture?.paypal_fee && (
+            <tr>
+              <th scope="row">PayPal fee on the capture (sandbox reported)</th>
+              <td>{view.final_capture.paypal_fee}</td>
+            </tr>
+          )}
           <tr className="math-free">
             <th scope="row">Not charged for {t.failed} failed {t.failed === 1 ? "call" : "calls"}</th>
             <td>{t.not_charged}</td>
@@ -405,6 +415,26 @@ function Summary({ view, onNew }: { view: TabView; onNew: () => void }) {
         ))}
       </ul>
       <p className="panel-sub">Authorization {view.paypal.authorization_id} is {view.paypal.authorization_status}.</p>
+      {view.payout && (
+        <>
+          <p className="panel-sub">
+            Royalties: {view.payout.note} {view.payout.payout_batch_id ? `PayPal Payouts batch ${view.payout.payout_batch_id} (${view.payout.batch_status ?? "sent"}).` : ""} {view.payout.error ?? ""}
+          </p>
+          <ul className="caps">
+            {view.payout.items.map((i) => (
+              <li key={i.payout_item_id ?? i.payee.receiver}>
+                <span className="mono">{i.payout_item_id ?? "pending"}</span> {i.amount} to {i.payee.receiver} {i.status ?? ""}
+                {i.payout_item_fee ? ` (PayPal fee ${i.payout_item_fee})` : ""}
+              </li>
+            ))}
+            {view.payout.accruing.map((a) => (
+              <li key={a.payee.receiver}>
+                {a.unpaid} accruing for {a.payee.receiver} (pays at {a.threshold})
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
       <button type="button" className="btn btn-plum" onClick={onNew}>
         Open another tab
       </button>
