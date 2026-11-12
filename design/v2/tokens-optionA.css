@@ -1,0 +1,41 @@
+/* Toll Bridge v2 · Option A "Carbon Copy"
+   Navy ink header band only, receipt-white panels on a cool desk grey,
+   one accent: carbon-copy cobalt. Status colors only on small chips. */
+:root {
+  --tb-name: "Carbon Copy";
+  /* neutrals (cool) */
+  --tb-bg: #F3F5F8;          /* desk */
+  --tb-surface: #FFFFFF;     /* receipt paper */
+  --tb-surface-2: #F6F8FA;   /* zebra, inset */
+  --tb-ink: #0B1626;
+  --tb-ink-2: #4B5768;
+  --tb-rule: #DDE2E9;        /* hairline */
+  --tb-rule-strong: #0B1626; /* total rules */
+  /* header band (also ledger header and totals row) */
+  --tb-head-bg: #0B1626;
+  --tb-head-fg: #FFFFFF;
+  --tb-head-fg-2: #B4BFCE;
+  --tb-head-rule: #24334B;   /* column resize handles */
+  --tb-head-accent: #A3B6FF;
+  /* the one accent */
+  --tb-accent: #2346D6;
+  --tb-accent-fg: #FFFFFF;
+  --tb-accent-hover: #1B37AE;
+  --tb-accent-text: #2346D6; /* accent as text on white */
+  --tb-accent-tint: #EBEFFD;
+  /* code + agent log */
+  --tb-code-bg: #0B1626;
+  --tb-code-fg: #D3DCE8;
+  --tb-code-dim: #8D9AAE;
+  /* meaning only */
+  --tb-paid: #0A7046;  --tb-paid-bg: #E4F4EA;
+  --tb-refused: #B42318; --tb-refused-bg: #FDECEA;
+  --tb-pending: #4B5768; --tb-pending-bg: #EEF1F5;
+  /* elevation */
+  --tb-shadow: 0 1px 2px rgba(11,22,38,.06), 0 8px 24px -16px rgba(11,22,38,.28);
+  --tb-em-fg: #2346D6;       /* hero emphasis text */
+  --tb-mark-bg: #E3E9FC;     /* highlighter under key figures */
+  --tb-panel-line: #DDE2E9;  /* panel border */
+  --tb-head-line: #0B1626;   /* rule under header band */
+  --tb-theme-color: #0B1626;
+}

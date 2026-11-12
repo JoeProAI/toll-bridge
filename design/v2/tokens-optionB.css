@@ -1,0 +1,37 @@
+/* Toll Bridge v2 · Option B "Thermal"
+   Receipt-first: white page, near-black ink, hairline and double rules,
+   one accent: highlighter amber, used as a fill behind figures and on the
+   primary action (it sits in the same family as PayPal's gold button).
+   Status colors only on small chips. */
+:root {
+  --tb-name: "Thermal";
+  --tb-bg: #FFFFFF;
+  --tb-surface: #FFFFFF;
+  --tb-surface-2: #F4F5F6;
+  --tb-ink: #111315;
+  --tb-ink-2: #555A60;
+  --tb-rule: #E0E2E5;
+  --tb-rule-strong: #111315;
+  --tb-head-bg: #FFFFFF;
+  --tb-head-fg: #111315;
+  --tb-head-fg-2: #555A60;
+  --tb-head-rule: #D0D3D7;   /* column resize handles */
+  --tb-head-accent: #111315;
+  --tb-accent: #FFC93C;
+  --tb-accent-fg: #111315;
+  --tb-accent-hover: #FFD86E;
+  --tb-accent-text: #111315; /* amber fails as text, so text stays ink */
+  --tb-accent-tint: #FFF3CC;
+  --tb-code-bg: #16181B;
+  --tb-code-fg: #DADDE1;
+  --tb-code-dim: #979CA3;
+  --tb-paid: #0A7046;  --tb-paid-bg: #E4F4EA;
+  --tb-refused: #B42318; --tb-refused-bg: #FDECEA;
+  --tb-pending: #555A60; --tb-pending-bg: #EFF0F2;
+  --tb-shadow: none;
+  --tb-em-fg: #111315;
+  --tb-mark-bg: #FFC93C;
+  --tb-panel-line: #111315;
+  --tb-head-line: #111315;
+  --tb-theme-color: #FFFFFF;
+}

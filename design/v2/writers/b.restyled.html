@@ -1,0 +1,82 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Why the night bus came back | Toll Bridge demo writers</title>
+<link rel="license" type="application/rsl+xml" href="https://joeproai.github.io/toll-bridge-writers/licenses/writer-b.xml">
+<style>/* Toll Bridge demo writers, v2 "Thermal" (matches the app's recommended option).
+   Drop-in for the <style> block of index.html and a.html to d.html in
+   JoeProAI/toll-bridge-writers. Article pages need NO text changes:
+   htmlToText() in the app strips <style> and tags, so quote spans stay
+   identical. Keep the data-* attributes on .lic from v1 (WRITERS-SPEC.md). */
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400&display=swap");
+:root { --ink:#111315; --ink-2:#555A60; --rule:#E0E2E5; --inset:#F4F5F6; --accent:#FFC93C; --tint:#FFF3CC; --paid:#0A7046; --paid-bg:#E4F4EA; --refused:#B42318; --refused-bg:#FDECEA; --code:#16181B; }
+* { box-sizing: border-box; }
+html { overflow-x: clip; }
+body { margin: 0 auto; max-width: 1040px; padding: 0 20px 56px; background: #FFFFFF; color: var(--ink); font: 18px/1.65 "Source Serif 4", Georgia, serif; -webkit-font-smoothing: antialiased; }
+a { color: var(--ink); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { background: var(--tint); }
+a:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+code, pre { font-family: "IBM Plex Mono", monospace; font-size: .85em; }
+
+/* DEMO band: text unchanged, full-bleed, the one accent */
+.demo { margin: 0 calc(50% - 50vw); padding: 10px 20px; text-align: center; background: var(--accent); color: var(--ink); border-bottom: 1px solid var(--ink); font: 500 13px/1.45 "IBM Plex Mono", monospace; letter-spacing: .02em; }
+.demo a { color: var(--ink); font-weight: 600; }
+
+h1 { font: 800 clamp(30px, 4.6vw, 48px)/1.04 "Archivo", sans-serif; font-variation-settings: "wdth" 108; letter-spacing: -.025em; margin: 44px 0 12px; text-wrap: balance; }
+h2 { font: 800 26px/1.1 "Archivo", sans-serif; font-variation-settings: "wdth" 108; letter-spacing: -.015em; margin: 44px 0 12px; }
+/* byline: first p after the title on article pages */
+body:not(.index) h1 + p { font: 400 14px/1.5 "IBM Plex Mono", monospace; color: var(--ink-2); margin: 0 0 26px; padding-bottom: 14px; border-bottom: 1px solid var(--ink); }
+body:not(.index) h1 + p em { font-style: normal; }
+p { margin: 0 0 1.1em; }
+/* "Demo note:" paragraphs on c and d */
+p:has(> strong:first-child) { border-left: 3px solid var(--ink); background: var(--inset); padding: 12px 16px; font: 400 15px/1.55 "IBM Plex Mono", monospace; }
+
+/* License slip, built from the existing .lic div. Price comes from data-*
+   attributes through CSS, so no new text enters the page source. */
+.lic { margin: 32px 0 0; display: flex; flex-direction: column; align-items: flex-start; border: 1px solid var(--ink); border-radius: 3px; background: #FFFFFF; font: 400 13px/1.5 "IBM Plex Mono", monospace; color: var(--ink-2); padding: 0 14px 14px; white-space: normal; word-break: break-word; }
+.lic::before { order: -2; align-self: stretch; content: "RSL 1.0 LICENSE \00B7  DEMO\A" attr(data-terms); white-space: pre-wrap; margin: 0 -14px; padding: 12px 14px 4px; color: var(--ink-2); font: 500 11px/1.6 "IBM Plex Mono", monospace; letter-spacing: .1em; text-transform: uppercase; }
+.lic::after { order: -1; align-self: flex-start; content: attr(data-price); margin: 0 0 12px; padding: 0 .05em; color: var(--ink); font: 700 40px/1.1 "Archivo", sans-serif; font-variation-settings: "wdth" 108; letter-spacing: -.02em; font-variant-numeric: tabular-nums; background: linear-gradient(transparent 58%, var(--accent) 58% 90%, transparent 90%); }
+.lic[data-tone="no"]::after { color: var(--refused); background: none; }
+.lic[data-tone="no"] { border-top: 3px solid var(--refused); }
+.lic a { font-weight: 500; color: var(--ink); }
+
+@media (min-width: 860px) {
+  body:not(.index) { display: grid; grid-template-columns: minmax(0, 1fr) 280px; column-gap: 56px; align-content: start; }
+  body:not(.index) > * { grid-column: 1; }
+  body:not(.index) > .demo { grid-column: 1 / -1; }
+  body:not(.index) > .lic { grid-column: 2; grid-row: 2 / span 40; align-self: start; position: sticky; top: 24px; margin-top: 52px; }
+}
+
+/* ===== index only (class="index" on <body>) ===== */
+.index .mast { padding: 40px 0 0; }
+.index .mast h1 { font-size: clamp(34px, 5.6vw, 60px); margin: 12px 0 14px; }
+.index .mast p { color: var(--ink-2); font-size: 18px; max-width: 36em; }
+.index .kick { font: 500 12px/1 "IBM Plex Mono", monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-2); margin-top: 0; }
+.index .truss { height: 4px; margin-top: 28px; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); background: none; }
+.board { list-style: none; margin: 28px 0 0; padding: 0; border-top: 1px solid var(--ink); }
+.board li { display: grid; grid-template-columns: 52px minmax(0,1fr) 220px; gap: 18px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--rule); }
+.tile { width: 52px; height: 52px; display: grid; place-items: center; border: 1px solid var(--ink); color: var(--ink); font: 700 26px/1 "Archivo", sans-serif; font-variation-settings: "wdth" 108; border-radius: 3px; background: #FFFFFF; }
+.board h3 { font: 700 20px/1.25 "Archivo", sans-serif; font-variation-settings: "wdth" 104; letter-spacing: -.01em; margin: 0 0 4px; }
+.board h3 a { color: var(--ink); text-decoration: none; } .board h3 a:hover { text-decoration: underline; background: none; }
+.by { font: 400 13px/1.4 "IBM Plex Mono", monospace; color: var(--ink-2); }
+.terms { text-align: right; display: grid; gap: 6px; justify-items: end; }
+.price { font: 700 24px/1 "Archivo", sans-serif; font-variation-settings: "wdth" 108; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.price small { font: 400 12px "IBM Plex Mono", monospace; color: var(--ink-2); letter-spacing: 0; }
+.st { display: inline-flex; align-items: center; gap: 6px; font: 500 11px/1 "IBM Plex Mono", monospace; letter-spacing: .08em; text-transform: uppercase; padding: 5px 7px; border-radius: 2px; white-space: nowrap; }
+.st::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.st-paid { color: var(--paid); background: var(--paid-bg); } .st-no { color: var(--refused); background: var(--refused-bg); } .st-warn { color: var(--ink); background: var(--tint); }
+pre { background: var(--code); color: #DADDE1; padding: 16px; border-radius: 3px; overflow-x: auto; font-size: 13px; line-height: 1.6; }
+pre .k { color: #FFFFFF; font-weight: 500; }
+.fine { font: 400 14px/1.6 "IBM Plex Mono", monospace; color: var(--ink-2); border-top: 1px solid var(--rule); padding-top: 14px; margin-top: 32px; }
+@media (max-width: 760px) {
+  body { font-size: 17px; }
+  .board li { grid-template-columns: 44px minmax(0,1fr); gap: 12px; }
+  .tile { width: 44px; height: 44px; font-size: 22px; }
+  .terms { grid-column: 2; justify-items: start; text-align: left; grid-auto-flow: column; justify-content: start; align-items: center; gap: 10px; }
+}
+</style></head><body><div class="demo">DEMO WRITER &middot; PayPal sandbox only &middot; fictional writer, fake data &middot; part of the <a href="https://github.com/JoeProAI/toll-bridge">Toll Bridge</a> hackathon demo</div>
+<h1>Why the night bus came back</h1><p><em>By Theo Brandt (fictional demo writer)</em></p>
+<p>Route 14N, the overnight bus between the hospital district and the rail yards, returned in September after being cut in 2020. The transit agency restored it with a three-year, $1.8 million state grant aimed at shift workers.</p>
+<p>The bus runs every 40 minutes from 11:20 pm to 5:00 am. In its first eight weeks it averaged 410 riders a night, about 30 percent above the agency&#39;s forecast of 315.</p>
+<p>A rider survey found that 62 percent of night riders were traveling to or from work, and 18 percent said they had been paying for rideshares to cover the gap. Nurses at St. Brigid&#39;s hospital were the largest single group.</p>
+<p>The agency says the grant does not cover the route after 2029. Staff plan to ask the council for local funding if ridership stays above 350 a night through next summer.</p>
+<div class="lic" data-price="$0.05" data-terms="per verified use, USD">License (RSL 1.0): <a href="https://joeproai.github.io/toll-bridge-writers/licenses/writer-b.xml">licenses/writer-b.xml</a></div>
+</body></html>
