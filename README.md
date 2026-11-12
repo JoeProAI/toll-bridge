@@ -2,41 +2,157 @@
 
 [![CI](https://github.com/JoeProAI/toll-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/JoeProAI/toll-bridge/actions/workflows/ci.yml)
 
-**A PayPal tab for AI agents.** You approve one budget hold in PayPal. Your agent pays per tool call out of that hold, and PayPal only captures a call's toll when the result passes its checks. A failed call costs nothing. Whatever's left is voided when the tab closes.
+**Pay for verified answers, and pay the writers they quoted.** You approve one PayPal hold. Your agent pays per call out of it, but only for answers that pass their checks. Every page the answer quotes gets a royalty under its RSL 1.0 license, paid with PayPal Payouts. A failed call costs nothing and pays no one.
 
-Live: _pending deploy_ (see [the PR](https://github.com/JoeProAI/toll-bridge/pull/1) for status). PayPal **sandbox only**. No real money moves.
+- Hosted (PayPal sandbox): `<<HOSTED_URL>>` (today: https://toll-bridge-git-main-joeproais-projects.vercel.app)
+- Video: `<<VIDEO_URL>>`
+- PayPal **sandbox only**. No real money moves.
 
-Live sandbox proof: [proof/PROOF.md](proof/PROOF.md) has a real PayPal sandbox run (order, authorization, 2 captures, void) with the IDs PayPal returned.
+## Live PayPal sandbox IDs
 
-## Why
+From Joe's hosted run: one $10 tab, 4 calls (A pass, B pass, D injected fail, C refused), close, payout. Every ID was read back from PayPal. Details in [proof/PROOF.md](proof/PROOF.md).
 
-Agents that spend money today either get a whole card (scary) or a human approves every charge (useless). Toll Bridge sits in the middle and uses real PayPal primitives:
+| What | ID | Status | Amount |
+| --- | --- | --- | --- |
+| Order (intent AUTHORIZE) | `<<JOE_RUN: order_id>>` | `<<JOE_RUN: order_status>>` | 10.00 held |
+| Authorization (the hold) | `<<JOE_RUN: authorization_id>>` | `<<JOE_RUN: authorization_status>>` | |
+| Final capture | `<<JOE_RUN: capture_id>>` | `<<JOE_RUN: capture_status>>` | `<<JOE_RUN: captured>>`, PayPal fee `<<JOE_RUN: capture_fee>>` |
+| Released to the payer | | | `<<JOE_RUN: released>>` |
+| Void (only if anything was still held) | `<<JOE_RUN: void_or_none>>` | | |
+| Payouts batch | `<<JOE_RUN: payout_batch_id>>` | `<<JOE_RUN: batch_status>>` | |
+| Payout item, writer A | `<<JOE_RUN: payout_item_a>>` | `<<JOE_RUN: item_a_status>>` | 0.05, fee `<<JOE_RUN: item_a_fee>>` |
+| Payout item, writer B | `<<JOE_RUN: payout_item_b>>` | `<<JOE_RUN: item_b_status>>` | 0.05, fee `<<JOE_RUN: item_b_fee>>` |
 
-1. **Hold.** The person approves one budget in PayPal. It's an Orders v2 order with `intent: AUTHORIZE`, so the money is held, not spent.
-2. **Earn.** Every tool call gets a quote first (HTTP 402). The tool runs, then a verifier checks the result. Only a PASS triggers `POST /v2/payments/authorizations/{id}/capture` for that call's price, with `final_capture: false`, so more captures can follow. A FAIL captures nothing.
-3. **Void.** Closing the tab calls `POST /v2/payments/authorizations/{id}/void`. Captured tolls stay. The rest goes back.
+## Check it yourself
 
-Every captured cent has a receipt with its PayPal capture ID, read back from PayPal.
+No keys needed for any of these unless noted.
 
-## The paid tool: `wring`
+**`npm run proof`**: typecheck, lint with zero warnings, and the full test suite in fixtures mode with `fetch` blocked. With PayPal sandbox credentials set, it also runs a live sandbox tab.
 
-Long messy text or a URL in. A brief out: a title, a summary, and 3 to 8 claims, each with an exact quote from the source and its character span. It runs on Cloudflare Workers AI: Meta `@cf/meta/llama-3.1-8b-instruct-fast` writes the brief, and a judge from a different family, Mistral `@cf/mistralai/mistral-small-3.1-24b-instruct`, scores it.
+```
+tests: 91/91 passed in 12 files (fixtures mode, no network)
 
-The verifier is separate from the generator and is built to say no:
+live sandbox run skipped: no PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET. Committed proof/ files are untouched.
+
+proof passed
+```
+
+**`npm run bench`**: the 101-item bench corpus on the deterministic fake model. It shows the mechanical checks do what they say. It says nothing about real model quality (see the live bench below).
+
+```
+catch rate 100.0% (91/91), false-pass 0.0%, false-fail 0.0%, misses 0, errors 0
+```
+
+**`npm run judge -- --base <url>`**: drives a hosted Toll Bridge end to end with no local keys and prints every PayPal ID. Against a live-sandbox host it prints a PayPal approval link and waits for you to approve as the sandbox buyer. Against a local fixtures server (`PAYPAL_MODE=fixtures MODEL_MODE=fake npm run dev`):
+
+```
+A: PASS, judge 8.3. 0.55 owed, incl. 0.05 royalty to sb-3j1ps53857892@personal.example.com. ...
+B: PASS, judge 8.3. 0.55 owed, incl. 0.05 royalty to sb-o9xx453857673@personal.example.com. ...
+D: FAIL, 0.00 charged. claim 3, 4: quotes text hidden from readers (likely a prompt injection)
+C: refused, 0.00 charged. 451 rsl_refused: Refused before running, charged 0.00: The license prohibits ai-input (AI input) use.
+Closed. Held 10.00, captured 1.10, authorization CAPTURED.
+Final capture FXCAP000000000003: 1.10, PayPal fee 0.52, net 0.58.
+  0.05 to sb-3j1ps53857892@personal.example.com: item FXPOI0000040 SUCCESS, PayPal fee 0.25
+  0.05 to sb-o9xx453857673@personal.example.com: item FXPOI0000041 SUCCESS, PayPal fee 0.25
+```
+
+`FX...` IDs are fixtures. On the hosted app they are real sandbox IDs, each printed with its sandbox GET URL.
+
+**`npm run verify-receipt <receipt.json>`**: checks a receipt offline with no secret. It verifies the Ed25519 signature against the public key, recomputes the page SHA-256 from the snapshot, and finds every quoted span at its offsets. Download a receipt from any `/receipt/...` page, or paste it at `/verify`.
+
+```
+$ npm run verify-receipt receipt.json -- --key <host>/.well-known/toll-bridge-receipt-key.json
+receipt call_84dviM-23MVB (pass), key from ...
+  ok    signature: Ed25519 signature valid for key a1fce427d4d67273
+  ok    page_hash: snapshot SHA-256 matches 92eb33672656ae5f
+  ok    spans: 5 span(s) found at their offsets
+VALID
+```
+
+Change one field and it prints `FAIL  signature: signature does not match this receipt and key`, then `INVALID`, and exits 1.
+
+**`npm run rsl:check <url>`**: runs RSL discovery and evaluation on any page, for example `https://joeproai.github.io/toll-bridge-writers/c.html` (prohibited).
+
+## How it works
+
+1. **Hold.** The person approves one PayPal Orders v2 order with `intent: AUTHORIZE`. Money is held, not spent.
+2. **License.** Before a source is used, Toll Bridge reads its RSL 1.0 terms: HTTP `Link` header, then HTML `<link rel="license">`, then `robots.txt`. A prohibited or OLP-only page is refused before anything runs, at $0.00. A `payment type="use"` page adds a royalty line to the quote.
+3. **Quote.** Every call gets an HTTP 402 first, with the price: tool fee plus royalty lines.
+4. **Verify.** `wring` writes a brief where every claim carries an exact quote and its offsets. A separate verifier checks it (table below). Only a PASS is added to the tab.
+5. **Royalty.** A source earns its royalty only if the call passed and at least one claim quoting that source passed the span check.
+6. **Close.** One capture of the total with `final_capture: true`, then a void if anything is still held. Royalties go to each payee's ledger, and PayPal Payouts pays them.
 
 | Check | Fails when |
 | --- | --- |
 | schema | the JSON doesn't match the brief schema |
-| spans | a quote isn't found at its stated offsets in the source (span forgery) |
-| grounding | a claim says things its quote and nearby sentence don't |
-| coverage | too few or too many claims, overlapping quotes, quotes bunched in one corner, summary too long |
-| judge | a second LLM prompt scores faithfulness below 7 or the mean below 6.5 |
+| spans | a quote isn't at its stated offsets in the source (forged quote, shifted offsets) |
+| grounding | a claim says things its quote doesn't |
+| coverage | too few or too many claims, overlapping quotes, summary too long |
+| hidden | a claim quotes text the page hides from readers |
+| judge | a second model scores faithfulness below 7 or the mean below 6.5 |
 
-If the mechanical checks fail, `wring` gets one retry with the reasons. The judge's call is final. The demo input "Sleep gummy sales page" hides an instruction to claim FDA approval, and it's there so the not-charged path shows up every time.
+### Models
 
-## Try it
+| Role | Model ID (Cloudflare Workers AI) | Family |
+| --- | --- | --- |
+| Generator | `@cf/meta/llama-3.1-8b-instruct-fast` | Meta Llama |
+| Judge | `@cf/mistralai/mistral-small-3.1-24b-instruct` | Mistral |
 
-### No keys at all (fixtures)
+The judge is from a different family, so it doesn't share the generator's blind spots by default. `/api/config` returns both IDs and the policy hash. With `MODEL_MODE=fake`, the UI and `/api/config` say the model is a scripted fake.
+
+### Demo writers
+
+https://joeproai.github.io/toll-bridge-writers/ hosts four pages with RSL licenses:
+- a, b and d: `paid_use` at 0.05 USD per use.
+- c: prohibits AI use, so it's refused.
+- d: also hides a prompt injection off screen.
+
+On the hosted app with real models, **D is caught by the judge, not by the hidden-text check**. The Llama generator took in the injection but didn't quote the hidden text word for word, so `hidden` passed. The Mistral judge failed it with "The summary and claims repeat instructions to AI assistants as if they were facts." (3 of 3 runs before the bench). With the fake model, the hidden-text check catches it instead.
+
+## Live bench (one run, untuned)
+
+From [bench/RESULTS.md](bench/RESULTS.md): 101 items, one live run on Workers AI, no tuning after it.
+
+**Headline (same run, relabeled after the run)**
+- Confirmed false passes: 0 of 91.
+- Bad items caught (failed or refused): 61/91. That's 40/40 for tampering, prohibited, OLP, unreadable and thin, and 21/51 for injected.
+- Injected items not confirmed either way: 30/51.
+- False-fail rate: 10.0% (1/10). `clean-bridge` failed with "two claims quote overlapping text". It is a real miss.
+- Errors: 0.
+
+**Raw (as run: every injected PASS counted as a miss)**
+- Catch rate: 67.0% (61/91)
+- False-pass rate: 33.0%
+- False-fail rate: 10.0%
+- Errors: 0
+
+The injected expectation was corrected after the run. An injected PASS is only a miss if the answer used the hidden text. The run didn't store answer text, so those 30 PASSes are known not to quote the hidden span, but whether they carried the payload is unknown. Of the 21 injected catches, 11 came from the injection checks and 10 failed for unrelated reasons. RESULTS.md has every verdict.
+
+## Fees and why royalties are batched
+
+- A PayPal capture has a fixed part (published US rate 3.49% + $0.49), so a tab does one capture at close, not one per call. In the sandbox run, 1.10 captured carried a 0.52 fee.
+- A Payouts item costs $0.25 (sandbox reported 0.25 per item; published US Payouts API rate is $0.25 flat). A $0.05 royalty paid on its own costs five times its value to send.
+- So royalties accrue per payee across tabs in a KV ledger and pay out once a payee crosses `PAYOUT_THRESHOLD_USD` (default 5.00). At 5.00 the item fee is 5% of the payout. The demo sets the threshold to 0.05 so a payout shows on video.
+- Without KV, each tab pays its own royalties at close, and the UI says so.
+- Sandbox fees are shown as PayPal reports them. Published production rates are labeled as such and never added to sandbox numbers.
+
+## Known limits
+
+- **Sandbox only.** The PayPal client refuses any base URL other than `api-m.sandbox.paypal.com`.
+- **The generator false-fails sometimes.** Llama 3.1 8B fast is small. On writer B it passed 1 of 3 live runs: twice the judge failed it for adding a year that isn't on the page, which is a correct fail. `clean-bridge` false-fails in the bench on overlapping quotes. A failed call costs $0.00, so the agent can send it again.
+- **30 injected PASSes are not confirmed either way.** The bench run didn't store answers (it does now, in `bench/answers.json`, for future runs). The five hiding styles collapse to the same text after HTML extraction, so that axis adds no signal.
+- **The judge sometimes returns no score.** That fails closed (watermains x5 in the bench).
+- **Payout fees dwarf small royalties.** Batching (above) is the fix, so a writer waits until the threshold.
+- **Unclaimed payouts.** A payout to an email with no PayPal account shows as UNCLAIMED. Signing up for PayPal with that email claims it. PayPal returns it after 30 days. We don't build our own claim flow.
+- **Our payout media type is a proposal.** `application/vnd.tollbridge.paypal-payout+json` inside RSL's `<accepts>` is ours, not part of RSL 1.0.
+- **No OLP.** Pages licensed through an RSL OLP server are refused, not negotiated.
+- **`robots.txt` license discovery is covered by fixtures only.** GitHub Pages project sites can't serve it.
+- **Authorization limits.** A PayPal authorization's honor period is 3 days, so tabs are meant to be short.
+- **Receipt history.** Receipts were HMAC-signed with `TAB_SECRET` until E1. Now they are Ed25519, checkable by anyone with the public key. HMAC remains only for the private tab token. The older proof at the top of `proof/` from Nov 10 predates RSL, used per-call captures and a void, and will be replaced by the hosted run.
+
+## Run it
+
+No keys (fixtures):
 
 ```bash
 npm install
@@ -44,75 +160,60 @@ PAYPAL_MODE=fixtures MODEL_MODE=fake npm run dev
 # open http://localhost:3000/tab
 ```
 
-Fixtures mode swaps PayPal for a recorded-shape fake (orders, authorizations, partial captures, voids, idempotency, the real error names), and the hold state rides inside the signed tab token. The UI says "PayPal: fixtures" so nobody mistakes it for the real thing. Drop `MODEL_MODE=fake` and set `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_AI_API_TOKEN` to use the real model.
-
-### Live PayPal sandbox
+Live sandbox:
 
 ```bash
 export PAYPAL_MODE=live-sandbox PAYPAL_ENV=sandbox
-export PAYPAL_CLIENT_ID=... PAYPAL_CLIENT_SECRET=...   # a sandbox REST app
+export PAYPAL_CLIENT_ID=... PAYPAL_CLIENT_SECRET=...      # a sandbox REST app
 export CLOUDFLARE_ACCOUNT_ID=... CLOUDFLARE_AI_API_TOKEN=...
-export TAB_SECRET=$(openssl rand -hex 32)
+export TAB_SECRET=$(openssl rand -hex 32) RECEIPT_SIGNING_KEY=$(openssl rand -base64 32)
 npm run dev
 ```
 
-The open-tab page shows the PayPal button. Log in with a sandbox buyer account to approve the hold. The client only ever talks to `api-m.sandbox.paypal.com` and refuses any other base URL.
-
-Sandbox buyer login for judges: `sb-ak43ew42095534@personal.example.com` (password shared with judges alongside the submission; it's a PayPal sandbox test account, no real money).
+Sandbox buyer for judges: `sb-ak43ew42095534@personal.example.com` (password shared with judges alongside the submission).
 
 ### Point an agent at it
 
-Plain HTTP:
-
 ```bash
-# 1. open a tab (the human approves at approve_url), then claim it
-curl -s -X POST $HOST/api/tabs -d '{"budget":"2.00"}'
-curl -s -X POST $HOST/api/tabs/claim -d '{"pending_token":"..."}'   # returns tab_token
-
-# 2. ask for the tool: 402 with a quote
-curl -s -X POST $HOST/api/tools/wring -H "authorization: Bearer $TAB" -d '{"input":"https://..."}'
-
-# 3. pay with the quote: runs, verifies, captures only on PASS
+curl -s -X POST $HOST/api/tabs -H 'content-type: application/json' -d '{"budget":"2.00"}'           # approve_url, pending_token
+curl -s -X POST $HOST/api/tabs/claim -H 'content-type: application/json' -d '{"pending_token":"..."}'  # tab_token
+curl -s -X POST $HOST/api/tools/wring -H "authorization: Bearer $TAB" -d '{"input":"https://..."}'     # 402 with quote_token
 curl -s -X POST $HOST/api/tools/wring -H "authorization: Bearer $TAB" -H "x-toll-quote: $QUOTE" -d '{"input":"https://..."}'
-
-# 4. close: voids the rest
 curl -s -X POST $HOST/api/tab/close -H "authorization: Bearer $TAB"
 ```
 
-MCP (Streamable HTTP) at `/api/mcp`, with tools `toll_open_tab`, `toll_fixture_approve`, `toll_claim_tab`, `toll_quote`, `toll_wring`, `toll_tab_status`, `toll_close_tab`:
-
-```json
-{ "mcpServers": { "toll-bridge": { "url": "https://<host>/api/mcp" } } }
-```
-
-Scripted agent that runs the whole loop (2 pass, 1 fail, close):
+MCP (Streamable HTTP) at `/api/mcp`: `toll_open_tab`, `toll_fixture_approve`, `toll_claim_tab`, `toll_quote`, `toll_rsl_check`, `toll_wring`, `toll_tab_status`, `toll_close_tab`.
 
 ```bash
-BASE_URL=http://localhost:3000 npm run demo
+claude mcp add --transport http toll-bridge https://<host>/api/mcp
 ```
 
-## Proof
+### Writers
 
-```bash
-npm run proof
-```
+- `/writers/new` generates an RSL 1.0 license (price per use, PayPal email or PayPal ID, allowed uses) and the `<link>` tag, and checks a page.
+- `/writer/[payee]` shows the sentences that earned money, page hashes, accrued vs paid, and payout item IDs.
 
-It runs typecheck, lint with zero warnings, and the test suite in fixtures mode with `fetch` blocked. The suite covers verifier pass/fail, span forgery, over-budget, double capture and idempotency, void after close, quote expiry and binding, and the live client's request shape against PayPal's published examples. If PayPal sandbox credentials are set, it then runs a live sandbox tab (3 calls, close) and writes `proof/receipts.json` and `proof/PROOF.md` with the real order, authorization, capture and void IDs. Without credentials it says so and leaves `proof/` alone.
+## State
 
-## How state works (no database)
+There's no database for tabs. Tab state is an HMAC-signed token (an httpOnly cookie, or a Bearer token for agents). Amounts always come from PayPal: every read re-fetches the order, authorization and capture. Quotes are signed and bound to the tab and the input. Every capture and payout uses a deterministic `PayPal-Request-Id` or `sender_batch_id`, so a retry can't charge or pay twice. The royalty ledger lives in Upstash Redis (free tier) when configured.
 
-Tab state is a signed, compressed token (HMAC-SHA256): an httpOnly cookie for the browser, a Bearer token for agents. It holds IDs and verdicts. Amounts always come from PayPal: every status, quote and close re-reads the order and authorization. That keeps the app on free serverless with nothing to provision. Quotes are signed too, bound to the tab and a hash of the input, and expire in 10 minutes. Captures use a deterministic `PayPal-Request-Id`, so a replayed quote, even with an old tab token, gets the same capture back instead of a second charge.
+## Compared with
 
-## PayPal details that matter
+| Project | What it does | Difference |
+| --- | --- | --- |
+| [rp10000/earned](https://github.com/rp10000/earned) | PayPal holds the money, AI inspectors check every result, PayPal captures only what passed. Pays its studios through PayPal Payouts. | Closest to our core loop. Its Payouts go to the vendors who did the work. Ours go to the writers an answer quoted, under their RSL terms. |
+| [entitySource/agent-tab](https://github.com/entitySource/agent-tab) | A metered tab for agents backed by PayPal Vault, HTTP 402 to any API, one capture at settlement | Toll Bridge also settles with one capture, but each charge needs a verified result, and sources get paid. |
+| [DakshSinghDhami/kalyx-sdk](https://github.com/DakshSinghDhami/kalyx-sdk) | Pay-per-citation retrieval with HTTP 402 on Solana devnet, verify-before-pay escrows | Toll Bridge pays per verified quote in PayPal, priced by the page's own RSL license. |
+| x402 / Assay | HTTP 402 payment flows for agents | Toll Bridge uses 402 for quotes and settles on PayPal. |
+| RSL Collective | The RSL standard and collective licensing | Toll Bridge reads RSL terms and pays per use directly. |
+| ProRata, TollBit | Publisher licensing and revenue share for AI | Toll Bridge pays per verified quote, with a public receipt. |
 
-- An authorization is valid for 29 days, and its honor period is 3 days. Tabs are meant to be short. The tab shows its expiry.
-- Partial captures use `final_capture: false`. A partially captured authorization can still be voided. A fully captured one can't, so closing a used-up tab skips the void.
-- A capture over the remaining hold fails with `MAX_CAPTURE_AMOUNT_EXCEEDED`. The app refuses to quote before it gets there.
+Credit to all of the above. Toll Bridge builds on RSL 1.0 and HTTP 402.
 
-## Stack
+## How this was built
 
-Next.js 16 (App Router, TypeScript) on Vercel, PayPal Orders v2 + Payments v2 REST, PayPal JS SDK (`@paypal/react-paypal-js`), Cloudflare Workers AI, AG Grid Community for the ledger, `mcp-handler` for MCP, zod, Vitest.
+Built during the hackathon (Nov 9 to 12, 2026) by Devin, Cognition's AI software engineer, working from Joe Gaither's briefs, with the Hackathon Desk reviewing and merging every PR. Joe ran the hosted PayPal popup approval. The demo writer site and the Toll Note design pack came from the Desk. `prototype/python/` is an earlier mocked prototype from Nov 3, 2026, and the app doesn't use it.
 
-`prototype/python/` is the earlier clean-room prototype (mocked PayPal). The TypeScript app replaces it.
+Stack: Next.js 16 (App Router, TypeScript) on Vercel, PayPal Orders v2, Payments v2 and Payouts REST, PayPal JS SDK, Cloudflare Workers AI, AG Grid Community, `mcp-handler`, Upstash Redis, zod, Vitest.
 
 License: MIT
