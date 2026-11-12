@@ -2,6 +2,7 @@
   "seed": "toll-bridge-holdout-v1",
   "holdout_sources": [
     "a",
+    "cf-challenge-403",
     "d",
     "market",
     "seawall"
@@ -106,7 +107,7 @@
     "olp-server-ferry": "dev",
     "unreadable-http-403": "dev",
     "unreadable-http-429": "dev",
-    "unreadable-cf-challenge-403": "dev",
+    "unreadable-cf-challenge-403": "holdout",
     "unreadable-challenge-page-200": "dev"
   }
 }

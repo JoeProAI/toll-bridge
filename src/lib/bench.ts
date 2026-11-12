@@ -91,18 +91,14 @@ export const sourceOf = (item: BenchItem) => item.page_url.replace(/^.*\//, "").
 
 export type BenchSplit = { seed: string; holdout_sources: string[]; items: Record<string, "dev" | "holdout"> };
 
+// A third of the multi-item articles and a third of the single-item sources, each picked by hash.
 export function makeSplit(items: BenchItem[], seed: string, fraction = 1 / 3): BenchSplit {
   const rank = (src: string) => createHash("sha256").update(`${seed}:${src}`).digest("hex");
-  const sources = [...new Set(items.map(sourceOf))].sort((a, b) => rank(a).localeCompare(rank(b)));
-  const holdout = sources.slice(0, Math.round(sources.length * fraction)).sort();
-  const big = new Set(sources.filter((src) => items.filter((i) => sourceOf(i) === src).length > 1));
-  const bigHold = [...big].filter((src) => holdout.includes(src)).length;
-  // Keep the held-out share of the multi-item articles close to the fraction too.
-  const want = Math.round(big.size * fraction);
-  const extra = [...big].filter((src) => !holdout.includes(src)).sort((a, b) => rank(a).localeCompare(rank(b))).slice(0, Math.max(0, want - bigHold));
-  const drop = [...big].filter((src) => holdout.includes(src)).sort((a, b) => rank(b).localeCompare(rank(a))).slice(0, Math.max(0, bigHold - want));
-  const final = [...holdout.filter((src) => !drop.includes(src)), ...extra].sort();
-  return { seed, holdout_sources: final, items: Object.fromEntries(items.map((i) => [i.id, final.includes(sourceOf(i)) ? "holdout" : "dev"])) };
+  const sources = [...new Set(items.map(sourceOf))];
+  const size = (src: string) => items.filter((i) => sourceOf(i) === src).length;
+  const pick = (group: string[]) => group.sort((x, y) => rank(x).localeCompare(rank(y))).slice(0, Math.round(group.length * fraction));
+  const holdout = [...pick(sources.filter((s) => size(s) > 1)), ...pick(sources.filter((s) => size(s) === 1))].sort();
+  return { seed, holdout_sources: holdout, items: Object.fromEntries(items.map((i) => [i.id, holdout.includes(sourceOf(i)) ? "holdout" : "dev"])) };
 }
 
 // Tampering applied to the generator's own brief, after it was written.
