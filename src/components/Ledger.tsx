@@ -1,5 +1,7 @@
 "use client";
-// Proposed replacement for src/components/Ledger.tsx. Styling and display only.
+// Proposed replacement for src/components/Ledger.tsx (v2). Styling and display only.
+// v2: passing calls that are owed on the tab (captured once, at close) now read
+// as "$0.50 on tab" instead of a struck "$0.50 $0.00", which looked like a refusal.
 // Same props, same data, same receipt links. Adds: Toll Note theme, status and
 // amount renderers, quote-check pips, pinned totals row, a slim column set
 // under 640px. Needs the CSS classes in SPEC.md section 5.
@@ -8,7 +10,7 @@ import { AgGridReact } from "ag-grid-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CallView } from "@/lib/client/api";
-import { CAPTURE_STATUS, CHECK_LETTERS, cleanTitle, ledgerColumns, tollNoteTheme, totalsRow } from "./ag-grid-theme";
+import { CAPTURE_STATUS, CHECK_LETTERS, cleanTitle, ledgerColumns, onTab, tollNoteTheme, totalsRow } from "./ag-grid-theme";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 type P = ICellRendererParams<CallView>;
@@ -34,6 +36,7 @@ const Amount = (p: P) => {
   if (!p.data) return null;
   if (pinned(p)) return <span className="amt amt-total">${p.data.charged}</span>;
   if (p.data.capture_id) return <span className="amt">${p.data.charged}</span>;
+  if (onTab(p.data)) return <span className="amt">${p.data.price}{isNarrow(p) && <span className="amt-sub">on tab</span>}</span>;
   if (isNarrow(p)) return <span className="amt amt-none">$0.00<span className="amt-sub">not charged</span></span>;
   return <span className="amt amt-none"><s>${p.data.price}</s> $0.00<span className="sr-only"> not charged</span></span>;
 };
@@ -41,12 +44,13 @@ const Capture = (p: P) => {
   const d = p.data;
   if (!d) return null;
   if (pinned(p)) return <span className="tot">{d.capture_id}</span>;
-  if (!d.capture_id) return <span className="cell-muted">{d.charge_error ? `none (${d.charge_error})` : "none, not captured"}</span>;
+  if (onTab(d)) return <span className="cell-muted">at close</span>;
+  if (!d.capture_id) return <span className="cell-muted">{d.charge_error ? `none (${d.charge_error})` : "not charged"}</span>;
   return <Link className="cell-id" href={`/receipt/${encodeURIComponent(d.capture_id)}`}>{d.capture_id}</Link>;
 };
 const Status = (p: P) => {
   if (pinned(p)) return null;
-  if (!p.value) return <span className="cell-muted">-</span>;
+  if (!p.value) return onTab(p.data) ? <span className="st st-pending">On tab</span> : <span className="cell-muted">-</span>;
   const s = CAPTURE_STATUS[p.value] ?? { cls: "st-held", label: String(p.value) };
   return <span className={`st ${s.cls}`}>{s.label}</span>;
 };
@@ -58,7 +62,7 @@ const Mobile = (p: P) => {
   return (
     <Link className="cell-call cell-wrap" href={`/receipt/${encodeURIComponent(d.capture_id ?? d.call_id)}`}>
       <b>{cleanTitle(d.title)}</b>
-      <span>{d.capture_id ?? d.reasons[0] ?? "not captured"}</span>
+      <span>{d.capture_id ?? (onTab(d) ? "on tab, captured at close" : d.reasons[0] ?? "not captured")}</span>
       {d.verdict === "pass" ? <span className="st st-paid">Pass</span> : <span className="st st-refused">Fail</span>}
     </Link>
   );

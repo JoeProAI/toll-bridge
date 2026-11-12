@@ -1,4 +1,4 @@
-// Toll Note theme for the AG Grid ledger (ag-grid-community 36.3.0, Theming API).
+// Toll Note v2 theme for the AG Grid ledger (ag-grid-community 36.3.0, Theming API).
 // Drop-in for src/components/Ledger.tsx: replace the existing `theme` const with
 // `tollNoteTheme`, and use `ledgerColumns()` for column defs. Display only.
 // Nothing here reads or writes money state; it formats CallView fields that
@@ -7,46 +7,48 @@ import { themeQuartz, type ColDef, type ValueFormatterParams } from "ag-grid-com
 import type { CallView } from "@/lib/client/api";
 
 export const tollNoteTheme = themeQuartz.withParams({
-  // next/font exposes these as CSS variables in layout.tsx (see SPEC.md 3.1)
+  // next/font exposes these as CSS variables in layout.tsx
   fontFamily: "var(--font-body), 'Public Sans', sans-serif",
-  headerFontFamily: "var(--font-display), 'Archivo', sans-serif",
+  headerFontFamily: "var(--font-mono), 'IBM Plex Mono', monospace",
   cellFontFamily: "var(--font-body), 'Public Sans', sans-serif",
   fontSize: 14,
   dataFontSize: 14,
-  headerFontSize: 12,
-  headerFontWeight: 800,
+  headerFontSize: 11.5,
+  headerFontWeight: 500,
 
-  backgroundColor: "#FFFFFF",
-  foregroundColor: "#0A231C",
-  chromeBackgroundColor: "#FFFFFF",
+  // v2: every color is a --tb-* token from globals.css, so swapping
+  // tokens-optionA.css for tokens-optionB.css restyles the grid too.
+  backgroundColor: "var(--tb-surface)",
+  foregroundColor: "var(--tb-ink)",
+  chromeBackgroundColor: "var(--tb-surface)",
 
-  headerBackgroundColor: "#0B3B2D",
-  headerTextColor: "#FFFFFF",
-  headerCellHoverBackgroundColor: "#11523F",
-  headerColumnBorder: { color: "#1A6B52", width: 1, style: "solid" },
-  headerColumnResizeHandleColor: "#1A6B52",
-  headerRowBorder: { color: "#F2B33D", width: 3, style: "solid" }, // gold rule under the header
+  headerBackgroundColor: "var(--tb-head-bg)",
+  headerTextColor: "var(--tb-head-fg-2)",
+  headerCellHoverBackgroundColor: "var(--tb-head-bg)",
+  headerColumnBorder: false,
+  headerColumnResizeHandleColor: "var(--tb-head-rule)",
+  headerRowBorder: { color: "var(--tb-head-line)", width: 1, style: "solid" },
 
-  borderColor: "#0B3B2D",
+  borderColor: "var(--tb-panel-line)",
   columnBorder: false,
-  rowBorder: { color: "#C9DDD3", width: 1, style: "solid" },
-  oddRowBackgroundColor: "#F2F7F4",
-  rowHoverColor: "#FFF1CC",
-  selectedRowBackgroundColor: "#FFE7A8",
-  accentColor: "#2A3BAE",
-  focusShadow: { radius: 0, spread: 3, color: "#2A3BAE" },
+  rowBorder: { color: "var(--tb-rule)", width: 1, style: "solid" },
+  oddRowBackgroundColor: "var(--tb-surface)",
+  rowHoverColor: "var(--tb-surface-2)",
+  selectedRowBackgroundColor: "var(--tb-accent-tint)",
+  accentColor: "var(--tb-accent-text)",
+  focusShadow: { radius: 0, spread: 2, color: "var(--tb-accent-text)" },
 
-  // Totals row: pinned bottom, banknote green with a gold rule on top
-  pinnedRowBackgroundColor: "#072B21",
-  pinnedRowTextColor: "#FFFFFF",
-  pinnedRowFontWeight: 700,
-  pinnedRowBorder: { color: "#F2B33D", width: 3, style: "solid" },
-  pinnedColumnBorder: { color: "#0B3B2D", width: 1.5, style: "solid" },
+  // Totals row: pinned bottom, header colors with a double rule on top
+  pinnedRowBackgroundColor: "var(--tb-head-bg)",
+  pinnedRowTextColor: "var(--tb-head-fg)",
+  pinnedRowFontWeight: 600,
+  pinnedRowBorder: { color: "var(--tb-rule-strong)", width: 3, style: "double" },
+  pinnedColumnBorder: false,
 
-  wrapperBorder: { color: "#0B3B2D", width: 1.5, style: "solid" },
+  wrapperBorder: { color: "var(--tb-panel-line)", width: 1, style: "solid" },
   wrapperBorderRadius: 4,
-  rowHeight: 56,
-  headerHeight: 44,
+  rowHeight: 52,
+  headerHeight: 40,
   cellHorizontalPadding: 14,
   spacing: 6,
   iconSize: 14,
@@ -69,11 +71,22 @@ export const CHECK_LETTERS: Record<string, string> = { schema: "S", spans: "P", 
 export const timeET = (p: ValueFormatterParams<CallView>) =>
   p.value ? new Date(p.value).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }) : "";
 
-/** Pinned bottom totals row. Sums the `charged` strings already on CallView. */
+/** Pass that is owed but not captured yet (tab settlement: captured once, at close). Display only. */
+export const onTab = (c?: CallView | null) => !!c && c.verdict === "pass" && !c.capture_id && !c.charge_error;
+
+/** Pinned bottom totals row. Sums strings already on CallView: captured `charged`, plus `price` for calls on the tab. */
 export function totalsRow(calls: CallView[], heldUsd: string) {
-  const paid = calls.filter((c) => c.capture_id);
-  const cents = paid.reduce((s, c) => s + Math.round(Number(c.charged) * 100), 0);
-  return [{ call_id: "__total", title: `${calls.length} calls, ${paid.length} paid`, charged: (cents / 100).toFixed(2), capture_id: `of $${heldUsd} held` } as unknown as CallView];
+  const cents = (v: string) => Math.round(Number(v) * 100);
+  const captured = calls.filter((c) => c.capture_id).reduce((s, c) => s + cents(c.charged), 0);
+  const owed = calls.filter(onTab).reduce((s, c) => s + cents(c.price), 0);
+  const passed = calls.filter((c) => c.verdict === "pass").length;
+  const usd = (n: number) => (n / 100).toFixed(2);
+  return [{
+    call_id: "__total",
+    title: `${calls.length} calls, ${passed} passed`,
+    charged: usd(captured + owed),
+    capture_id: owed ? `$${usd(owed)} on tab` : `of $${heldUsd} held`,
+  } as unknown as CallView];
 }
 
 /** Column sets. `wide` for >= 640px containers, `slim` below. Renderers live in Ledger.proposed.tsx. */
@@ -86,13 +99,13 @@ export function ledgerColumns(r: {
     wide: [
       { headerName: "#", valueGetter: (p) => (p.node?.rowPinned ? "" : (p.node?.rowIndex ?? 0) + 1), width: 56, pinned: "left", sortable: false, cellClass: "cell-n" },
       { headerName: "Call", colId: "call", valueGetter: (p) => cleanTitle(p.data?.title), cellRenderer: r.Call, minWidth: 170, flex: 1.5, tooltipValueGetter: (p) => cleanTitle(p.data?.title) },
-      { headerName: "Verdict", field: "verdict", cellRenderer: r.Verdict, width: 96 },
-      { headerName: "Quote check", field: "score", cellRenderer: r.Checks, width: 164 },
+      { headerName: "Verdict", field: "verdict", cellRenderer: r.Verdict, width: 92 },
+      { headerName: "Quote check", field: "score", cellRenderer: r.Checks, width: 172 },
       { headerName: "Charged", field: "charged", cellRenderer: r.Amount, width: 136, type: "rightAligned" },
       { headerName: "PayPal capture", field: "capture_id", cellRenderer: r.Capture, minWidth: 160, flex: 1 },
-      { headerName: "Status", field: "capture_status", cellRenderer: r.Status, width: 128 },
+      { headerName: "Status", field: "capture_status", cellRenderer: r.Status, width: 108 },
       { headerName: "Time", field: "at", width: 92, valueFormatter: timeET, cellClass: "cell-time" },
-      { headerName: "", colId: "receipt", cellRenderer: r.Receipt, width: 100, pinned: "right", sortable: false },
+      { headerName: "", colId: "receipt", cellRenderer: r.Receipt, width: 96, pinned: "right", sortable: false },
     ],
     slim: [
       { headerName: "Call", colId: "call", valueGetter: (p) => cleanTitle(p.data?.title), cellRenderer: r.Mobile, flex: 1, minWidth: 140, autoHeight: true, wrapText: true },

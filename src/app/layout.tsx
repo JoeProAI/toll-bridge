@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: "Approve one PayPal hold. Your agent pays per tool call, only for results that pass their checks. The rest is voided.",
 };
 
-export const viewport: Viewport = { themeColor: "#0B3B2D" };
+export const viewport: Viewport = { themeColor: "#0B1626" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
