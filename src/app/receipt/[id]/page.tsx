@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { ApiError, api, type CallView } from "@/lib/client/api";
+import { humanStatus } from "@/components/format";
 
 interface Receipt {
   call: CallView;
@@ -52,20 +53,42 @@ export default function ReceiptPage({ params }: { params: Promise<{ id: string }
           <h1 className="h-big">{pass ? `Paid ${c.charged}` : "Not charged"}</h1>
           <span className={`stamp ${pass ? "stamp-paid" : "stamp-free"}`}>{pass ? "Verified" : "Rejected"}</span>
         </header>
+        <h2 className="h-panel receipt-sec">The answer</h2>
         <dl className="receipt-rows">
+          <div className="row">
+            <dt>Verdict</dt>
+            <dd>
+              <span className={`st ${pass ? "st-paid" : "st-refused"}`}>{pass ? "Pass" : "Fail"}</span>
+              {c.score != null ? ` judge ${c.score}` : ""}
+            </dd>
+          </div>
+          <div className="row">
+            <dt>Checks</dt>
+            <dd>
+              <span className="pips" aria-label={Object.entries(c.checks).map(([k, v]) => `${k} ${v ? "ok" : "failed"}`).join(", ")}>
+                {Object.entries(c.checks).map(([k, v]) => (
+                  <span key={k} className={`pip ${v ? "" : "x"}`} title={`${k} ${v ? "ok" : "failed"}`}>
+                    {k.charAt(0).toUpperCase()}
+                  </span>
+                ))}
+              </span>{" "}
+              {Object.entries(c.checks).map(([k, v]) => `${k} ${v ? "ok" : "failed"}`).join(" · ")}
+            </dd>
+          </div>
+          {!pass && <Row k="Why" v={c.reasons.join("; ")} />}
           <Row k="Tool" v={`${c.tool} at ${c.price} USD`} />
           <Row k="Source" v={c.title ?? "(no brief)"} />
-          <Row k="Verdict" v={`${c.verdict.toUpperCase()}${c.score != null ? `, judge ${c.score}` : ""}`} />
-          <Row k="Checks" v={Object.entries(c.checks).map(([k, v]) => `${k} ${v ? "ok" : "failed"}`).join(" · ")} />
-          {!pass && <Row k="Why" v={c.reasons.join("; ")} />}
           <Row k="Model" v={c.model ?? "-"} />
           <Row k="Time" v={new Date(c.at).toLocaleString()} />
+        </dl>
+        <h2 className="h-panel receipt-sec">PayPal, read back just now</h2>
+        <dl className="receipt-rows">
           <Row k="Order" v={r.order_id} mono />
           <Row k="Authorization" v={r.authorization_id} mono />
           {r.capture ? (
             <>
               <Row k="Capture" v={r.capture.id} mono />
-              <Row k="Capture status" v={r.capture.status} />
+              <Row k="Capture status" v={humanStatus(r.capture.status)} />
               <Row k="Amount" v={`${r.capture.amount.value} ${r.capture.amount.currency_code}`} />
               <Row k="final_capture" v={String(r.capture.final_capture ?? false)} mono />
               <Row k="Invoice" v={r.capture.invoice_id ?? "-"} mono />

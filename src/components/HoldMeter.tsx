@@ -42,6 +42,13 @@ export function HoldMeter({ heldCents, priceCents, capturedCents, closed, voided
 
   return (
     <figure className={`meter ${closed ? "is-closed" : ""}`} aria-label={label} role="img">
+      <div className="note-top">
+        <span className="fig-k">PayPal hold · Orders v2 AUTHORIZE</span>
+      </div>
+      <div className="note-amt">
+        <small>$</small>
+        {money(heldCents)}
+      </div>
       <div className="meter-figures">
         <Fig k="Held" v={money(heldCents)} />
         <Fig k="Captured" v={money(capturedCents)} tone="plum" />
@@ -69,7 +76,7 @@ export function HoldMeter({ heldCents, priceCents, capturedCents, closed, voided
           const fresh = (isBitten && i === freshPass) || (state === "home" && freshId === "close");
           return (
             <span key={i} className={`chunk is-${state} ${fresh ? "is-fresh" : ""}`} style={{ ["--i" as string]: i }}>
-              <span className="chunk-val">{isBitten ? shortId(cap, 4) || "paid" : state === "home" ? "void" : money(Math.min(priceCents, heldCents - i * priceCents))}</span>
+              <span className="chunk-val">{isBitten ? (cap === "accrued" ? "on tab" : shortId(cap, 4) || "paid") : state === "home" ? "void" : money(Math.min(priceCents, heldCents - i * priceCents))}</span>
             </span>
           );
         })}

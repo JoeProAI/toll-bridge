@@ -1,5 +1,6 @@
 "use client";
 
+import { humanStatus } from "./format";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -215,7 +216,7 @@ export function TabApp() {
                 <div>
                   <dt>Authorization</dt>
                   <dd className="mono">
-                    {view.paypal.authorization_id} <span className={`status status-${view.paypal.authorization_status.toLowerCase()}`}>{view.paypal.authorization_status}</span>
+                    {view.paypal.authorization_id} <span className={`status status-${view.paypal.authorization_status.toLowerCase()}`}>{humanStatus(view.paypal.authorization_status)}</span>
                   </dd>
                 </div>
               </dl>
@@ -230,6 +231,8 @@ export function TabApp() {
                 setCustom={setCustom}
                 busy={busy}
                 stage={stage}
+                last={last}
+                callNo={stage ? view.calls.length + 1 : view.calls.findIndex((c) => c.call_id === last?.call.call_id) + 1}
                 onSend={sendOne}
                 onDemo={runDemo}
                 onClose={closeTab}
@@ -262,7 +265,7 @@ export function TabApp() {
                 <p>Send one and it lands here with its verdict and PayPal capture ID.</p>
               </div>
             ) : (
-              grid === "ledger" ? <Ledger calls={view.calls} /> : <Royalties view={view} />
+              grid === "ledger" ? <Ledger calls={view.calls} held={view.tab.held} /> : <Royalties view={view} />
             )}
           </section>
         </>
@@ -334,6 +337,8 @@ interface AgentProps {
   setCustom: (s: string) => void;
   busy: boolean;
   stage: Stage;
+  last: WringResult | null;
+  callNo: number;
   onSend: () => void;
   onDemo: () => void;
   onClose: () => void;
@@ -342,7 +347,7 @@ interface AgentProps {
   remaining: string;
 }
 
-function AgentPanel({ config, pick, setPick, custom, setCustom, busy, stage, onSend, onDemo, onClose, closing, log, remaining }: AgentProps) {
+function AgentPanel({ config, pick, setPick, custom, setCustom, busy, stage, last, callNo, onSend, onDemo, onClose, closing, log, remaining }: AgentProps) {
   const logRef = useRef<HTMLOListElement>(null);
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: "smooth" });
@@ -383,9 +388,63 @@ function AgentPanel({ config, pick, setPick, custom, setCustom, busy, stage, onS
         </button>
       </div>
       {empty && <p className="hint">The hold is used up. Close the tab to finish.</p>}
+      <Booth stage={stage} last={last} n={callNo} remaining={remaining} />
       <ol className="console" ref={logRef} aria-live="polite" aria-label="Agent log">
         {log.length === 0 ? <li className="ln ln-note">The agent&apos;s HTTP calls show up here.</li> : log.map((l) => <li key={l.id} className={`ln ln-${l.tone}`}>{l.text}</li>)}
         {stage && <li className="ln ln-wait">…</li>}
+      </ol>
+    </div>
+  );
+}
+
+function Booth({ stage, last, n, remaining }: { stage: Stage; last: WringResult | null; n: number; remaining: string }) {
+  if (!stage && !last) return null;
+  const c = stage ? null : last!.call;
+  const checks = c ? Object.entries(c.checks) : [];
+  const passed = checks.filter(([, ok]) => ok).length;
+  const pass = c?.verdict === "pass";
+  const live = stage === "quote" ? 0 : 1;
+  const cls = (i: number) => (stage ? (i < live ? "done" : i === live ? "now" : "") : i < 2 || pass ? "done" : "bad");
+  const label = c ? (c.title ?? c.source_url ?? c.tool) : "";
+  const steps = [
+    { k: "Quote", t: c ? `402, $${c.price}` : stage === "quote" ? "Getting a quote" : "402 received", d: c ? `${c.quote_id}\n${remaining} left on hold` : "" },
+    { k: "Run", t: c ? `${c.tool} ran` : stage === "run" ? "Running" : "Waiting", d: c ? `${c.model ?? ""}\nattempts: ${c.attempts}` : "" },
+    { k: "Quote check", t: c ? `${passed} of ${checks.length} passed` : "Waiting", d: "" },
+    {
+      k: "PayPal",
+      t: !c ? "Waiting" : pass ? (c.capture_id ? `Captured ${c.charged}` : `${c.charged} on the tab`) : "No capture",
+      d: !c ? "" : pass ? (c.capture_id ?? "Captured once, at close") : (c.reasons[0] ?? "failed checks"),
+    },
+  ];
+  return (
+    <div className="booth" aria-label={`Quote check for call ${n}`}>
+      <div className="booth-h">
+        <span className="fig-k booth-k">
+          Call {String(n).padStart(2, "0")}
+          {label ? ` · ${label}` : ""}
+        </span>
+        {stage ? <span className="st st-pending">In progress</span> : pass ? <span className="st st-paid">Pass</span> : <span className="st st-refused">Not charged</span>}
+      </div>
+      <ol className="steps">
+        {steps.map((s, i) => (
+          <li key={s.k} className={`step ${cls(i)}`}>
+            <div className="step-n">
+              <span className="dot">{cls(i) === "bad" && i === 2 ? "×" : i + 1}</span>
+              <span className="fig-k">{s.k}</span>
+            </div>
+            <div className="step-t">{s.t}</div>
+            {s.d && <div className="step-d">{s.d}</div>}
+            {i === 2 && c && (
+              <div className="checks">
+                {checks.map(([name, ok]) => (
+                  <span key={name} className={`ck ${ok ? "" : "x"}`}>
+                    {name}
+                  </span>
+                ))}
+              </div>
+            )}
+          </li>
+        ))}
       </ol>
     </div>
   );
@@ -441,7 +500,8 @@ function Summary({ view, onNew }: { view: TabView; onNew: () => void }) {
           <ul className="caps">
             {view.payout.items.map((i) => (
               <li key={i.payout_item_id ?? i.payee.receiver}>
-                <span className="mono">{i.payout_item_id ?? "pending"}</span> {i.amount} to {i.payee.receiver} {i.status ?? ""}
+                <span className={`st ${i.status === "SUCCESS" ? "st-paid" : i.status && !["PENDING", "UNCLAIMED", "ONHOLD"].includes(i.status) ? "st-refused" : "st-pending"}`}>{i.status === "SUCCESS" ? "Payout sent" : i.status ? humanStatus(i.status) : "Payout queued"}</span>{" "}
+                <span className="mono">{i.payout_item_id ?? "pending"}</span> {i.amount} to {i.payee.receiver}
                 {i.payout_item_fee ? ` (PayPal fee ${i.payout_item_fee})` : ""}
               </li>
             ))}

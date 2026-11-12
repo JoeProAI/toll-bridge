@@ -2,10 +2,10 @@
 
 import { AgGridReact } from "ag-grid-react";
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ColDef, ICellRendererParams } from "ag-grid-community";
 import type { CallView, TabView } from "@/lib/client/api";
-import { theme } from "./Ledger";
+import { tollNoteTheme as theme } from "./ag-grid-theme";
 
 export interface RoyaltyRow {
   id: string;
@@ -79,6 +79,14 @@ function Payee(p: ICellRendererParams<RoyaltyRow>) {
 export default function Royalties({ view }: { view: TabView }) {
   const grid = useRef<AgGridReact<RoyaltyRow>>(null);
   const [filter, setFilter] = useState("");
+  const box = useRef<HTMLDivElement>(null);
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    if (!box.current) return;
+    const ro = new ResizeObserver(([e]) => setNarrow(e.contentRect.width < 640));
+    ro.observe(box.current);
+    return () => ro.disconnect();
+  }, []);
   const rows = useMemo(() => royaltyRows(view), [view]);
   const totals = useMemo(() => totalsRows(view), [view]);
   const cols = useMemo<ColDef<RoyaltyRow>[]>(
@@ -95,6 +103,14 @@ export default function Royalties({ view }: { view: TabView }) {
     ],
     [],
   );
+  const slim = useMemo<ColDef<RoyaltyRow>[]>(
+    () => [
+      { headerName: "Quote", field: "quote", flex: 1, minWidth: 0, wrapText: true, autoHeight: true, cellClass: "cell-why" },
+      { headerName: "Royalty", field: "royalty", width: 92, cellClass: "cell-charged" },
+      { headerName: "Payout", field: "payout", width: 100, wrapText: true, autoHeight: true, enableCellChangeFlash: true },
+    ],
+    [],
+  );
   return (
     <>
       <div className="actions">
@@ -103,13 +119,13 @@ export default function Royalties({ view }: { view: TabView }) {
           Export CSV
         </button>
       </div>
-      <div className="ledger-grid">
+      <div className="ledger-grid" ref={box}>
         <AgGridReact<RoyaltyRow>
           ref={grid}
           theme={theme}
           rowData={rows}
           pinnedBottomRowData={totals as RoyaltyRow[]}
-          columnDefs={cols}
+          columnDefs={narrow ? slim : cols}
           getRowId={(p) => p.data.id}
           quickFilterText={filter}
           domLayout="autoHeight"

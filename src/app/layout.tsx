@@ -1,18 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Bricolage_Grotesque, Instrument_Sans, Martian_Mono } from "next/font/google";
+import { Archivo, IBM_Plex_Mono, Public_Sans } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 
-const display = Bricolage_Grotesque({ variable: "--font-display", subsets: ["latin"], axes: ["opsz", "wdth"] });
-const body = Instrument_Sans({ variable: "--font-body", subsets: ["latin"] });
-const mono = Martian_Mono({ variable: "--font-mono", subsets: ["latin"] });
+const display = Archivo({ variable: "--font-display", subsets: ["latin"], axes: ["wdth"] });
+const body = Public_Sans({ variable: "--font-body", subsets: ["latin"] });
+const mono = IBM_Plex_Mono({ variable: "--font-mono", subsets: ["latin"], weight: ["400", "500", "600"] });
 
 export const metadata: Metadata = {
   title: "Toll Bridge: a PayPal tab for AI agents",
   description: "Approve one PayPal hold. Your agent pays per tool call, only for results that pass their checks. The rest is voided.",
 };
 
-export const viewport: Viewport = { themeColor: "#D4FF3F" };
+export const viewport: Viewport = { themeColor: "#0B1626" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
