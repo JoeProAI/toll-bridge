@@ -316,7 +316,7 @@ export async function callTool(d: Deps, tab: TabState, quoteToken: string, rawIn
   } catch (e) {
     verdict = { pass: false, score: 0, checks: [], reasons: [`the tool failed to run: ${(e as Error).message}`.slice(0, 160)] };
   }
-  verdict = hiddenTextCheck(verdict, brief, source.hidden);
+  verdict = hiddenTextCheck(verdict, brief, source.hidden, source.text);
   const spans = (brief?.claims ?? [])
     .filter((c) => c.span && spanMatches(source.text, c.span, c.quote))
     .slice(0, 6)
@@ -430,14 +430,37 @@ export function royaltyDeps(d: Deps) {
   return { paypal: d.paypal, kv: d.kv ?? null, thresholdCents: d.thresholdCents ?? 500, now: d.now };
 }
 
-// A claim quoting text a reader can't see (off-screen, display:none) is how a
-// prompt injection gets into a brief. That fails the call.
-export function hiddenTextCheck(verdict: Verdict, brief: Brief | null, hidden: string[]): Verdict {
+const words = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+// A 5-word phrase from text hidden from readers that shows up anywhere in the
+// answer (title, summary, claims) but nowhere in the visible text.
+export function hiddenPhraseIn(brief: Brief | null, hidden: string[], text: string): string | null {
+  if (!brief || !hidden.length) return null;
+  const hn = hidden.map(words).filter(Boolean);
+  let visible = ` ${words(text)} `;
+  for (const h of hn) visible = visible.split(h).join(" ");
+  const ans = ` ${words([brief.title, brief.summary, ...brief.claims.map((c) => `${c.text} ${c.quote}`)].join(" "))} `;
+  for (const h of hn) {
+    const w = h.split(" ");
+    for (let i = 0; i + 5 <= w.length; i++) {
+      const g = ` ${w.slice(i, i + 5).join(" ")} `;
+      if (ans.includes(g) && !visible.includes(g)) return g.trim();
+    }
+  }
+  return null;
+}
+
+// Text a reader can't see (off-screen, display:none) is how a prompt injection
+// gets into a brief. Quoting it, or carrying its words into the answer, fails the call.
+export function hiddenTextCheck(verdict: Verdict, brief: Brief | null, hidden: string[], text = ""): Verdict {
   if (!brief || !hidden.length) return verdict;
   const hiddenNorm = hidden.map(normalize);
   const bad = brief.claims.map((c, i) => ({ i, q: normalize(c.quote) })).filter(({ q }) => q.length >= 12 && hiddenNorm.some((h) => h.includes(q) || q.includes(h)));
-  if (!bad.length) return { ...verdict, checks: [...verdict.checks, { name: "hidden", pass: true, detail: "no claim quotes hidden text" }] };
-  const detail = `claim ${bad.map((b) => b.i + 1).join(", ")}: quotes text hidden from readers (likely a prompt injection)`;
+  const phrase = text ? hiddenPhraseIn(brief, hidden, text) : null;
+  if (!bad.length && !phrase) return { ...verdict, checks: [...verdict.checks, { name: "hidden", pass: true, detail: "nothing in the answer comes from hidden text" }] };
+  const detail = bad.length
+    ? `claim ${bad.map((b) => b.i + 1).join(", ")}: quotes text hidden from readers (likely a prompt injection)`
+    : `the answer repeats text hidden from readers ("${phrase}"), likely a prompt injection`;
   return { ...verdict, pass: false, score: verdict.pass ? 0 : verdict.score, checks: [...verdict.checks, { name: "hidden", pass: false, detail }], reasons: [detail, ...verdict.reasons] };
 }
 

@@ -127,10 +127,15 @@ export function deterministicChecks(input: string, candidate: unknown): { checks
   if (n < RULES.minClaims) problems.push(`only ${n} claim${n === 1 ? "" : "s"}, need ${RULES.minClaims}`);
   if (n > RULES.maxClaims) problems.push(`${n} claims, max ${RULES.maxClaims}`);
   const spans = brief.claims.map((c) => c.span).filter((s): s is NonNullable<typeof s> => !!s).sort((a, b) => a.start - b.start);
-  for (let i = 1; i < spans.length; i++) {
-    if (spans[i].start < spans[i - 1].end) {
-      problems.push("two claims quote overlapping text");
-      break;
+  // Two claims resting on mostly the same words is padding. Quotes that only share a clause at the edge are fine.
+  outer: for (let i = 0; i < spans.length; i++) {
+    for (let j = i + 1; j < spans.length && spans[j].start < spans[i].end; j++) {
+      const shared = Math.min(spans[i].end, spans[j].end) - spans[j].start;
+      const shorter = Math.min(spans[i].end - spans[i].start, spans[j].end - spans[j].start);
+      if (shared * 2 >= shorter) {
+        problems.push("two claims quote overlapping text");
+        break outer;
+      }
     }
   }
   const sl = brief.summary.trim().length;
@@ -154,6 +159,8 @@ const clamp = (v: unknown) => {
   return Number.isFinite(n) ? Math.max(0, Math.min(10, n)) : 0;
 };
 
+const isScore = (x: unknown) => (typeof x === "number" && Number.isFinite(x)) || (typeof x === "string" && x.trim() !== "" && Number.isFinite(Number(x)));
+
 export async function verify(input: string, candidate: unknown, judgeModel: ChatModel): Promise<Verdict> {
   const { checks, brief } = deterministicChecks(input, candidate);
   const failed = checks.filter((c) => !c.pass);
@@ -162,25 +169,35 @@ export async function verify(input: string, candidate: unknown, judgeModel: Chat
     return { pass: false, score: 0, checks, reasons: failed.map((c) => c.detail) };
   }
   let judge: Verdict["judge"];
-  try {
-    const res = await judgeModel.json({
-      task: "judge",
-      system: JUDGE_SYSTEM,
-      user: judgeUserPrompt(input, brief),
-      maxTokens: 300,
-      schema: JUDGE_JSON_SCHEMA,
-      meta: { input, brief },
-    });
-    const d = (res.data ?? {}) as Record<string, unknown>;
-    judge = {
-      faithfulness: clamp(d.faithfulness),
-      coverage: clamp(d.coverage),
-      usefulness: clamp(d.usefulness),
-      issues: (Array.isArray(d.issues) ? d.issues : []).filter((x): x is string => typeof x === "string").slice(0, 4).map((s) => s.slice(0, 160)),
-      model: res.model,
-    };
-  } catch (e) {
-    checks.push({ name: "judge", pass: false, detail: `judge unavailable: ${(e as Error).message}` });
+  let lastError: unknown;
+  // One retry if the judge errors or returns no scores, then fail closed.
+  for (let attempt = 0; attempt < 2 && !judge; attempt++) {
+    try {
+      const res = await judgeModel.json({
+        task: "judge",
+        system: JUDGE_SYSTEM,
+        user: judgeUserPrompt(input, brief),
+        maxTokens: 300,
+        schema: JUDGE_JSON_SCHEMA,
+        meta: { input, brief },
+      });
+      const d = (res.data ?? {}) as Record<string, unknown>;
+      if (![d.faithfulness, d.coverage, d.usefulness].every(isScore)) {
+        throw new Error("the judge returned no scores");
+      }
+      judge = {
+        faithfulness: clamp(d.faithfulness),
+        coverage: clamp(d.coverage),
+        usefulness: clamp(d.usefulness),
+        issues: (Array.isArray(d.issues) ? d.issues : []).filter((x): x is string => typeof x === "string").slice(0, 4).map((s) => s.slice(0, 160)),
+        model: res.model,
+      };
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  if (!judge) {
+    checks.push({ name: "judge", pass: false, detail: `judge unavailable: ${(lastError as Error).message}` });
     return { pass: false, score: 0, checks, reasons: ["the judge could not score this result, so it isn't billed"] };
   }
   const mean = (judge.faithfulness + judge.coverage + judge.usefulness) / 3;
