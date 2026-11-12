@@ -17,7 +17,8 @@
     "judge": "tsx scripts/judge.mts",
     "bench": "tsx scripts/bench.mts",
     "bench:live": "tsx scripts/bench.mts --live",
-    "bench:corpus": "tsx scripts/bench-corpus.mts"
+    "bench:corpus": "tsx scripts/bench-corpus.mts",
+    "bench:split": "tsx scripts/bench-split.mts"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.4.0",
