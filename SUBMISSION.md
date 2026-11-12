@@ -70,7 +70,7 @@ Everything in the TypeScript app was built during the hackathon window (Nov 9 to
 - The writer pages, the HTTP API and MCP server.
 - The UI, tests, bench and proof scripts.
 
-Joe ran the hosted PayPal popup approval. The demo writer site and the Toll Note design pack came from the Desk. The only earlier code is `prototype/python/`, a small mocked prototype from Nov 3, 2026, and the app doesn't use it.
+`<<JOE_RUN: popup_credit>>` The demo writer site came from the Desk. The Toll Note design pack came from Scriptorium, a design agent. The only earlier code is `prototype/python/`, a small mocked prototype from Nov 3, 2026, and the app doesn't use it.
 
 ## Demo video script (2:45)
 
@@ -80,10 +80,10 @@ Joe ran the hosted PayPal popup approval. The demo writer site and the Toll Note
 | 0:15 to 0:35 | /tab: pick $10.00, PayPal popup, sandbox buyer approves | "I approve one ten dollar hold in PayPal. It's an authorization, so nothing is spent yet." |
 | 0:35 to 1:00 | Send A. Booth shows quote, run, quote check, PayPal | "The agent gets a 402 quote: fifty cents for the tool, five cents for the writer, because her page's RSL license says so. Every quote checks out, so it's added to the tab." |
 | 1:00 to 1:15 | Send B, passes | "Same for writer B." |
-| 1:15 to 1:40 | Send D, fails | "This page hides an instruction to AI assistants. The judge catches the answer repeating it. It fails. I pay nothing, and the page earns nothing." |
+| 1:15 to 1:40 | Send D (`<<JOE_RUN: d_verdict>>`) | If D fails: "This page hides an instruction to AI assistants. The judge catches the answer repeating it. It fails. I pay nothing, and the page earns nothing." If D passes, show it as injection ignored and use the built-in Sleep gummy input for the fail shot. |
 | 1:40 to 1:55 | Send C, refused | "This writer's license prohibits AI use. Refused before it runs. Zero." |
 | 1:55 to 2:15 | Close tab: the math, Royalties grid, payout items | "One capture for what passed. The rest goes back. PayPal Payouts sends each writer her royalty." Show the capture ID and payout item IDs. |
 | 2:15 to 2:30 | Receipt page, then /verify | "Every call has a receipt anyone can check: the signature, the page hash, every quote at its offsets." |
 | 2:30 to 2:45 | Terminal: `npm run judge -- --base <url>`, `npm run verify-receipt` | "A judge can run the whole thing from a terminal, with no keys." |
 
-Shot list: landing (desktop), PayPal popup approval, booth mid-call, D failing, C refused, close summary with payouts, Royalties grid, receipt, /verify, phone view of the tab, terminal.
+Shot list: landing (desktop), PayPal popup approval, booth mid-call, D (or the gummy fail), C refused, close summary with payouts, Royalties grid, receipt, /verify, phone view of the tab, terminal.

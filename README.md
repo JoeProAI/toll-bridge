@@ -10,7 +10,7 @@
 
 ## Live PayPal sandbox IDs
 
-From Joe's hosted run: one $10 tab, 4 calls (A pass, B pass, D injected fail, C refused), close, payout. Every ID was read back from PayPal. Details in [proof/PROOF.md](proof/PROOF.md).
+From Joe's hosted run: one $10 tab, 4 calls (A `<<JOE_RUN: a_verdict>>`, B `<<JOE_RUN: b_verdict>>`, D `<<JOE_RUN: d_verdict>>`, C `<<JOE_RUN: c_verdict>>`), close, payout. `<<JOE_RUN: run_notes>>` Every ID was read back from PayPal. Details in [proof/PROOF.md](proof/PROOF.md).
 
 | What | ID | Status | Amount |
 | --- | --- | --- | --- |
@@ -130,9 +130,9 @@ The injected expectation was corrected after the run. An injected PASS is only a
 
 ## Fees and why royalties are batched
 
-- A PayPal capture has a fixed part (published US rate 3.49% + $0.49), so a tab does one capture at close, not one per call. In the sandbox run, 1.10 captured carried a 0.52 fee.
-- A Payouts item costs $0.25 (sandbox reported 0.25 per item; published US Payouts API rate is $0.25 flat). A $0.05 royalty paid on its own costs five times its value to send.
-- So royalties accrue per payee across tabs in a KV ledger and pay out once a payee crosses `PAYOUT_THRESHOLD_USD` (default 5.00). At 5.00 the item fee is 5% of the payout. The demo sets the threshold to 0.05 so a payout shows on video.
+- Each PayPal capture carries a fee with a fixed part, so a tab does one capture at close, not one per call. In the sandbox run, 1.10 captured carried a 0.52 fee (PayPal-reported `seller_receivable_breakdown`).
+- A Payouts item costs $0.25 (sandbox-reported `payout_item_fee` 0.25 per item). A $0.05 royalty paid on its own costs five times its value to send.
+- So royalties accrue per payee across tabs in a KV ledger and pay out once a payee crosses `PAYOUT_THRESHOLD_USD`. The default is 5.00, where the item fee is 5% of the payout. The hosted demo sets `PAYOUT_THRESHOLD_USD=0.05` so a payout shows on video.
 - Without KV, each tab pays its own royalties at close, and the UI says so.
 - Sandbox fees are shown as PayPal reports them. Published production rates are labeled as such and never added to sandbox numbers.
 
@@ -170,7 +170,7 @@ export TAB_SECRET=$(openssl rand -hex 32) RECEIPT_SIGNING_KEY=$(openssl rand -ba
 npm run dev
 ```
 
-Sandbox buyer for judges: `sb-ak43ew42095534@personal.example.com` (password shared with judges alongside the submission).
+Sandbox buyer for judges: `sb-ak43ew42095534@personal.example.com` (the password is provided to judges by the team on request).
 
 ### Point an agent at it
 
@@ -212,7 +212,7 @@ Credit to all of the above. Toll Bridge builds on RSL 1.0 and HTTP 402.
 
 ## How this was built
 
-Built during the hackathon (Nov 9 to 12, 2026) by Devin, Cognition's AI software engineer, working from Joe Gaither's briefs, with the Hackathon Desk reviewing and merging every PR. Joe ran the hosted PayPal popup approval. The demo writer site and the Toll Note design pack came from the Desk. `prototype/python/` is an earlier mocked prototype from Nov 3, 2026, and the app doesn't use it.
+Built during the hackathon (Nov 9 to 12, 2026) by Devin, Cognition's AI software engineer, working from Joe Gaither's briefs, with the Hackathon Desk reviewing and merging every PR. `<<JOE_RUN: popup_credit>>` The demo writer site came from the Desk. The Toll Note design pack came from Scriptorium, a design agent. `prototype/python/` is an earlier mocked prototype from Nov 3, 2026, and the app doesn't use it.
 
 Stack: Next.js 16 (App Router, TypeScript) on Vercel, PayPal Orders v2, Payments v2 and Payouts REST, PayPal JS SDK, Cloudflare Workers AI, AG Grid Community, `mcp-handler`, Upstash Redis, zod, Vitest.
 
