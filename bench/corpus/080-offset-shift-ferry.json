@@ -1,0 +1,7 @@
+{
+  "id": "offset-shift-ferry",
+  "kind": "offset_shift",
+  "expect": "fail",
+  "page_url": "https://bench.example/ferry.html",
+  "html": "<!doctype html><html><head><title>bench</title></head><body>\n<p>The island ferry will add a fourth daily round trip on weekdays beginning in May, the regional transit board decided on Tuesday.</p>\n<p>Ridership on the route reached 412,000 passengers last year, up 19 percent from the year before and above the level the route carried before 2020.</p>\n<p>The new sailing will leave the mainland terminal at 6:15 in the morning, a time that commuters who work early hospital shifts had asked for in a survey last fall.</p>\n<p>Adding the trip will cost about $1.4 million a year in fuel, crew and maintenance, and fares are expected to cover roughly 45 percent of that.</p>\n<p>The rest will come from the island's tourism tax, which the county raised by half a percentage point in January.</p>\n<p>The board also approved a study of a hybrid electric vessel to replace the oldest boat in the fleet, which entered service in 1987.</p>\n</body></html>"
+}

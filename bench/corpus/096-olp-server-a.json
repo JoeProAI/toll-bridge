@@ -1,5 +1,5 @@
 {
-  "id": "olp-server",
+  "id": "olp-server-a",
   "kind": "olp",
   "expect": "refuse",
   "page_url": "https://joeproai.github.io/toll-bridge-writers/a.html",

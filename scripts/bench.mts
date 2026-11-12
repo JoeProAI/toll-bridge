@@ -23,7 +23,8 @@ console.log(`\ncatch rate ${s.catchRate} (${s.caught}/${s.bad}), false-pass ${s.
 if (live) {
   const sha = execSync("git rev-parse HEAD").toString().trim();
   writeFileSync("bench/RESULTS.md", resultsMarkdown(results, { date: new Date().toISOString(), mode: "live Workers AI", generator: c.generatorModel, judge: c.judgeModel, sha }));
-  console.log("wrote bench/RESULTS.md");
+  writeFileSync("bench/answers.json", JSON.stringify(results.filter((r) => r.answer !== undefined).map(({ id, got, injected, hidden_use, answer }) => ({ id, got, injected, hidden_use, answer })), null, 2) + "\n");
+  console.log("wrote bench/RESULTS.md and bench/answers.json");
 } else if (s.misses.length) {
   process.exit(1);
 }
