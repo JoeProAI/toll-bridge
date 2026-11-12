@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ChatModel } from "@/lib/ai/model";
@@ -83,6 +84,21 @@ export function readCorpus(dir: string): BenchItem[] {
     .filter((f) => f.endsWith(".json"))
     .sort()
     .map((f) => JSON.parse(readFileSync(join(dir, f), "utf8")) as BenchItem);
+}
+
+// Split by source page, so the eight versions of one article never land on both sides.
+export const sourceOf = (item: BenchItem) => item.page_url.replace(/^.*\//, "").replace(/\.html$/, "");
+
+export type BenchSplit = { seed: string; holdout_sources: string[]; items: Record<string, "dev" | "holdout"> };
+
+// A third of the multi-item articles and a third of the single-item sources, each picked by hash.
+export function makeSplit(items: BenchItem[], seed: string, fraction = 1 / 3): BenchSplit {
+  const rank = (src: string) => createHash("sha256").update(`${seed}:${src}`).digest("hex");
+  const sources = [...new Set(items.map(sourceOf))];
+  const size = (src: string) => items.filter((i) => sourceOf(i) === src).length;
+  const pick = (group: string[]) => group.sort((x, y) => rank(x).localeCompare(rank(y))).slice(0, Math.round(group.length * fraction));
+  const holdout = [...pick(sources.filter((s) => size(s) > 1)), ...pick(sources.filter((s) => size(s) === 1))].sort();
+  return { seed, holdout_sources: holdout, items: Object.fromEntries(items.map((i) => [i.id, holdout.includes(sourceOf(i)) ? "holdout" : "dev"])) };
 }
 
 // Tampering applied to the generator's own brief, after it was written.
